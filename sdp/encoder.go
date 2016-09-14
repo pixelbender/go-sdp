@@ -1,6 +1,7 @@
 package sdp
 
 import (
+	"sort"
 	"strconv"
 	"time"
 )
@@ -46,7 +47,6 @@ func (enc *Encoder) line(typ byte) {
 		b[1] = '='
 		enc.cont = true
 	}
-	return enc
 }
 
 func (enc *Encoder) char(ch byte) {
@@ -56,7 +56,7 @@ func (enc *Encoder) char(ch byte) {
 
 func (enc *Encoder) int(v int64) {
 	b := enc.next(20)
-	enc.pos = strconv.AppendInt(b, v, 10) - len(b)
+	enc.pos += len(strconv.AppendInt(b[:0], v, 10)) - len(b)
 }
 
 func (enc *Encoder) string(v string) {
@@ -99,7 +99,8 @@ func (enc *Encoder) String() string {
 
 func (enc *Encoder) Encode(desc *Description) {
 	enc.line('v')
-	enc.int(desc.Version)
+	enc.int(int64(desc.Version))
+
 	if desc.Origin != nil {
 		enc.encodeOrigin(desc.Origin)
 	}
@@ -109,51 +110,154 @@ func (enc *Encoder) Encode(desc *Description) {
 	} else {
 		enc.string(desc.Session)
 	}
-	if c := desc.Connection; c != nil {
-		enc.line('c')
-		enc.encodeConn(c.Network, c.Type, c.Address)
+	if desc.Information != "" {
+		enc.line('i')
+		enc.string(desc.Information)
 	}
-	for t, v := range desc.Bandwidth {
-		enc.line('b')
-		enc.string(t)
-		enc.char(':')
-		enc.int(v)
-	}
-	enc.line('t')
-	if len(desc.Timing) == nil {
-		enc.string("0 0")
-	} else {
-		for _, it := range desc.Timing {
-			enc.encodeTime(it.Start)
-			enc.char(' ')
-			enc.encodeTime(it.Stop)
-			// TODO: repeat + zone
-		}
-	}
-	enc.encodeList('i', desc.Information)
 	if desc.URI != "" {
 		enc.line('u')
 		enc.string(desc.URI)
 	}
 	enc.encodeList('e', desc.Email)
 	enc.encodeList('p', desc.Phone)
+	if c := desc.Connection; c != nil {
+		enc.line('c')
+		enc.encodeConn(c.Network, c.Type, c.Address)
+	}
+	for typ, v := range desc.Bandwidth {
+		enc.encodeBandwidth(typ, v)
+	}
+	enc.encodeTiming(desc.Timing)
+	enc.encodeTimezones(desc.TimeZones)
+
 	if k := desc.Key; k != nil {
-		enc.encodePair('k', k.Type, k.Value)
+		enc.encodeKey(k.Type, k.Value)
+	}
+	if desc.Mode != "" {
+		enc.encodeAttr(desc.Mode, "")
 	}
 	for _, it := range desc.Attributes {
-		enc.encodePair('a', it.Name, it.Value)
+		enc.encodeAttr(it.Name, it.Value)
 	}
 	for _, it := range desc.Media {
-		enc.encodeMedia(it)
+		enc.encodeMediaDesc(it)
 	}
 }
 
-func (enc *Encoder) encodeMedia(m *Media) {
-	// TODO: implement
+func (enc *Encoder) encodeMediaDesc(m *Media) {
+	fmts := make([]int, 0, len(m.Formats))
+	for p := range m.Formats {
+		fmts = append(fmts, p)
+	}
+	sort.Ints(fmts)
+
+	enc.line('m')
+	enc.string(m.Type)
+	enc.char(' ')
+	enc.int(int64(m.Port))
+	if m.PortNum != 0 {
+		enc.char('/')
+		enc.int(int64(m.PortNum))
+	}
+	enc.char(' ')
+	enc.string(m.Proto)
+	for _, p := range fmts {
+		enc.char(' ')
+		enc.int(int64(p))
+	}
+
+	if m.Information != "" {
+		enc.line('i')
+		enc.string(m.Information)
+	}
+	if c := m.Connection; c != nil {
+		enc.line('c')
+		enc.encodeConn(c.Network, c.Type, c.Address)
+	}
+	for typ, v := range m.Bandwidth {
+		enc.encodeBandwidth(typ, v)
+	}
+	if k := m.Key; k != nil {
+		enc.encodeKey(k.Type, k.Value)
+	}
+	for _, p := range fmts {
+		enc.encodeMediaMap(m.Formats[p])
+	}
+	if m.Mode != "" {
+		enc.encodeAttr(m.Mode, "")
+	}
+	for _, it := range m.Attributes {
+		enc.encodeAttr(it.Name, it.Value)
+	}
 }
 
-func (enc *Encoder) encodePair(typ byte, k, v string) {
+func (enc *Encoder) encodeMediaMap(f *Format) {
+	if f == nil {
+		return
+	}
 	enc.line('a')
+	enc.string("rtpmap:")
+	enc.int(int64(f.Payload))
+	enc.char(' ')
+	enc.string(f.Codec)
+	enc.char('/')
+	enc.int(int64(f.Clock))
+	if f.Channels != 0 {
+		enc.char('/')
+		enc.int(int64(f.Channels))
+	}
+}
+
+func (enc *Encoder) encodeTiming(t *Timing) {
+	enc.line('t')
+	if t == nil {
+		enc.string("0 0")
+	} else {
+		enc.encodeTime(t.Start)
+		enc.char(' ')
+		enc.encodeTime(t.Stop)
+		if t.Repeat != nil {
+			enc.encodeRepeat(t.Repeat)
+		}
+	}
+}
+
+func (enc *Encoder) encodeRepeat(r *Repeat) {
+	enc.line('r')
+	enc.encodeDuration(r.Interval)
+	enc.char(' ')
+	enc.encodeDuration(r.Duration)
+	for _, it := range r.Offsets {
+		enc.char(' ')
+		enc.encodeDuration(it)
+	}
+}
+
+func (enc *Encoder) encodeTimezones(z []*TimeZone) {
+	if len(z) > 0 {
+		enc.line('z')
+		for i, it := range z {
+			if i > 0 {
+				enc.char(' ')
+			}
+			enc.encodeTime(it.Time)
+			enc.char(' ')
+			enc.encodeDuration(it.Offset)
+		}
+	}
+}
+
+func (enc *Encoder) encodeAttr(k, v string) {
+	enc.line('a')
+	enc.string(k)
+	if v != "" {
+		enc.char(':')
+		enc.string(v)
+	}
+}
+
+func (enc *Encoder) encodeKey(k, v string) {
+	enc.line('k')
 	enc.string(k)
 	if v != "" {
 		enc.char(':')
@@ -168,11 +272,30 @@ func (enc *Encoder) encodeList(typ byte, v []string) {
 	}
 }
 
-func (enc *Encoder) encodeTime(t *time.Time) {
-	if t == nil {
+func (enc *Encoder) encodeTime(t time.Time) {
+	if t.IsZero() {
 		enc.char('0')
 	} else {
-		// TODO: write time
+		d := int64(t.Sub(ntpEpoch).Seconds())
+		enc.int(d)
+	}
+}
+
+func (enc *Encoder) encodeDuration(d time.Duration) {
+	sec := int64(d.Seconds())
+	if sec == 0 {
+		enc.char('0')
+	} else if sec%86400 == 0 {
+		enc.int(sec / 86400)
+		enc.char('d')
+	} else if sec%3600 == 0 {
+		enc.int(sec / 3600)
+		enc.char('h')
+	} else if sec%60 == 0 {
+		enc.int(sec / 60)
+		enc.char('m')
+	} else {
+		enc.int(sec)
 	}
 }
 
@@ -202,4 +325,11 @@ func (enc *Encoder) encodeConn(network, typ, addr string) {
 		addr = "0.0.0.0"
 	}
 	enc.fields(network, typ, addr)
+}
+
+func (enc *Encoder) encodeBandwidth(typ string, v int) {
+	enc.line('b')
+	enc.string(typ)
+	enc.char(':')
+	enc.int(int64(v))
 }

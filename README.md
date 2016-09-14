@@ -30,9 +30,10 @@ import (
 func main() {
 	desc, err := sdp.Parse(`v=0
 o=alice 2890844526 2890844526 IN IP4 alice.example.org
-s=
+s=Example
 c=IN IP4 127.0.0.1
 t=0 0
+a=sendrecv
 m=audio 10000 RTP/AVP 0 8
 a=rtpmap:0 PCMU/8000
 a=rtpmap:8 PCMA/8000`)
@@ -40,7 +41,7 @@ a=rtpmap:8 PCMA/8000`)
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		fmt.Println(desc)
+		fmt.Println(desc.Media[0].Formats[0].Codec)
 	}
 }
 ```
@@ -57,24 +58,27 @@ import (
 
 func main() {
 	desc := &sdp.Description{
-	    Origin: &sdp.Origin{ Username:"alice", Address:"alice.example.org" },
-	    Session: "Example",
-	    Connection: &sdp.Connection{ Address: "127.0.0.1" },
-	    Media: []*sdp.Media{
-	        &sdp.Media{
-	            Type: "audio",
-	            Port: 10000,
-	            Proto: "RTP/AVP",
-	            Formats: []*sdp.Format{
-	                &sdp.Format{ Payload: 0, Codec: "PCMU", Clock: 8000 },
-	                &sdp.Format{ Payload: 8, Codec: "PCMA", Clock: 8000 },
-	            },
-	            Attributes: []*sdp.Attribute{
-	                &sdp.Attribute{Name:"sendonly"},
-	            },
-	        },
-	    },
-	}
+    		Origin: &sdp.Origin{
+    		    Username:"alice",
+    		    Address:"alice.example.org",
+    		    SessionID: 2890844526,
+    		    SessionVersion: 2890844526,
+    		},
+    		Session: "Example",
+    		Connection: &sdp.Connection{ Address: "127.0.0.1" },
+    		Media: []*sdp.Media{
+    			{
+    				Type: "audio",
+    				Port: 10000,
+    				Proto: "RTP/AVP",
+    				Formats: map[int]*sdp.Format{
+    					0: { Payload: 0, Codec: "PCMU", Clock: 8000 },
+    					8: { Payload: 8, Codec: "PCMA", Clock: 8000 },
+    				},
+    			},
+    		},
+    		Mode: sdp.ModeSendRecv,
+    	}
 
 	fmt.Println(desc.String())
 }
@@ -83,5 +87,5 @@ func main() {
 ## Specifications
 
 - [RFC 5389: Session Description Protocol](https://tools.ietf.org/html/rfc4566)
-- [RFC 3264: Offer/Answer Model with SDP](https://tools.ietf.org/html/rfc3264)
+    - [RFC 3264: Offer/Answer Model with SDP](https://tools.ietf.org/html/rfc3264)
 - [RFC 6871: SDP Media Capabilities Negotiation](https://tools.ietf.org/html/rfc6871)
