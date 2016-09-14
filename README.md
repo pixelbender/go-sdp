@@ -87,5 +87,5 @@ func main() {
 ## Specifications
 
 - [RFC 5389: Session Description Protocol](https://tools.ietf.org/html/rfc4566)
-    - [RFC 3264: Offer/Answer Model with SDP](https://tools.ietf.org/html/rfc3264)
+- [RFC 3264: Offer/Answer Model with SDP](https://tools.ietf.org/html/rfc3264)
 - [RFC 6871: SDP Media Capabilities Negotiation](https://tools.ietf.org/html/rfc6871)
