@@ -5,6 +5,7 @@ import "time"
 // MediaType is the media type for an SDP session description.
 const MediaType = "application/sdp"
 
+// Sending and receiving modes for a media stream.
 const (
 	ModeSendRecv = "sendrecv"
 	ModeRecvOnly = "recvonly"
@@ -76,7 +77,7 @@ type Format struct {
 	Clock    int
 	Channels int
 	Feedback []string
-	Params   map[string]string
+	Params   []string
 }
 
 // Key contains a key exchange information.

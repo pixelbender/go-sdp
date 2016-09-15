@@ -66,6 +66,9 @@ func TestEncode(t *testing.T) {
 				Proto: "RTP/AVP",
 				Formats: map[int]*Format{
 					99: {Payload: 99, Codec: "h263-1998", Clock: 90000},
+					100: {Payload: 100, Codec: "H264", Clock: 90000, Params: []string{
+						"profile-level-id=42c01f;level-asymmetry-allowed=1",
+					}},
 				},
 			},
 		},
@@ -86,8 +89,10 @@ r=7d 1h 0 25h
 z=3034423619 -1h 3042462419 0
 a=recvonly
 m=audio 49170 RTP/AVP 0
-m=video 51372 RTP/AVP 99
-a=rtpmap:99 h263-1998/90000`
+m=video 51372 RTP/AVP 99 100
+a=rtpmap:99 h263-1998/90000
+a=rtpmap:100 H264/90000
+a=fmtp:100 profile-level-id=42c01f;level-asymmetry-allowed=1`
 
 	a := strings.Split(desc.String(), "\r\n")
 	b := strings.Split(expected, "\n")

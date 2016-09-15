@@ -25,8 +25,10 @@ z=3034423619 -1h 3042462419 0
 k=prompt
 a=recvonly
 m=audio 49170 RTP/AVP 0
-m=video 51372 RTP/AVP 99
-a=rtpmap:99 h263-1998/90000`
+m=video 51372 RTP/AVP 99 100
+a=rtpmap:99 h263-1998/90000
+a=rtpmap:100 H264/90000
+a=fmtp:100 profile-level-id=42c01f;level-asymmetry-allowed=1`
 
 	layout := "2006-01-02 15:04:05 -0700 MST"
 	start, _ := time.Parse(layout, "1996-02-27 15:26:59 +0000 UTC")
@@ -89,6 +91,7 @@ a=rtpmap:99 h263-1998/90000`
 			{video.Port, 51372},
 			{video.Proto, "RTP/AVP"},
 			{video.Formats[99], &Format{Payload: 99, Codec: "h263-1998", Clock: 90000}},
+			{video.Formats[100].Params, []string{"profile-level-id=42c01f;level-asymmetry-allowed=1"}},
 		} {
 			if !reflect.DeepEqual(it.found, it.expected) {
 				t.Fatalf("found %+v expected %+v", it.found, it.expected)

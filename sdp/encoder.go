@@ -6,12 +6,14 @@ import (
 	"time"
 )
 
+// An Encoder writes an SDP description to a buffer.
 type Encoder struct {
 	buf  []byte
 	pos  int
 	cont bool
 }
 
+// NewEncoder returns a new encoder.
 func NewEncoder() *Encoder {
 	return &Encoder{}
 }
@@ -83,6 +85,7 @@ func (enc *Encoder) fields(v ...string) {
 	}
 }
 
+// Bytes returns a slice of buffer holding the encoded SDP description.
 func (enc *Encoder) Bytes() []byte {
 	if enc.cont {
 		b := enc.next(2)
@@ -93,11 +96,16 @@ func (enc *Encoder) Bytes() []byte {
 	return enc.buf[:enc.pos]
 }
 
+// String returns the encoded SDP description as string.
 func (enc *Encoder) String() string {
 	return string(enc.Bytes())
 }
 
+// Encode writes the SDP description into the buffer.
 func (enc *Encoder) Encode(desc *Description) {
+	enc.pos = 0
+	enc.cont = false
+
 	enc.line('v')
 	enc.int(int64(desc.Version))
 
@@ -205,6 +213,13 @@ func (enc *Encoder) encodeMediaMap(f *Format) {
 	if f.Channels != 0 {
 		enc.char('/')
 		enc.int(int64(f.Channels))
+	}
+	for _, it := range f.Params {
+		enc.line('a')
+		enc.string("fmtp:")
+		enc.int(int64(f.Payload))
+		enc.char(' ')
+		enc.string(it)
 	}
 }
 

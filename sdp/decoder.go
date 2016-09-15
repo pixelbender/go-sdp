@@ -2,32 +2,33 @@ package sdp
 
 import (
 	"bufio"
-	"errors"
 	"io"
 	"strconv"
 	"time"
 )
 
-var ErrNotImplemented = errors.New("sdp: not implemented")
-
 type reader interface {
 	ReadLine() (string, error)
 }
 
+// A Decoder reads and decodes SDP description from an input stream or buffer.
 type Decoder struct {
 	r   reader
 	p   []string
 	err error
 }
 
+// NewDecoder returns a new decoder that reads from r.
 func NewDecoder(r io.Reader) *Decoder {
 	return &Decoder{r: &bufferedReader{buf: bufio.NewReader(r)}}
 }
 
+// NewDecoderString returns a new decoder that reads from v.
 func NewDecoderString(v string) *Decoder {
 	return &Decoder{r: &stringReader{buf: v}}
 }
 
+// Decode reads and decodes a SDP description from its input.
 func (dec *Decoder) Decode() (*Description, error) {
 	desc := &Description{}
 	for {
@@ -83,6 +84,8 @@ func (dec *Decoder) decodeMediaAttributes(m *Media) error {
 			m.Mode = it.Name
 		case "rtpmap":
 			dec.decodeMediaMap(m, it.Value)
+		case "fmtp":
+			dec.decodeMediaParams(m, it.Value)
 		default:
 			m.Attributes[n] = it
 			n++
@@ -113,6 +116,19 @@ func (dec *Decoder) decodeMediaMap(m *Media, v string) error {
 	if f.Clock, err = strconv.Atoi(dec.p[0]); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (dec *Decoder) decodeMediaParams(m *Media, v string) error {
+	if !dec.split(v, ' ', 2, true) {
+		return dec.err
+	}
+	p, err := strconv.Atoi(dec.p[0])
+	if err != nil {
+		return err
+	}
+	f := dec.touchMediaFormat(m, p)
+	f.Params = append(f.Params, dec.p[1])
 	return nil
 }
 

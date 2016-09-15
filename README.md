@@ -59,8 +59,8 @@ import (
 func main() {
 	desc := &sdp.Description{
     		Origin: &sdp.Origin{
-    		    Username:"alice",
-    		    Address:"alice.example.org",
+    		    Username: "alice",
+    		    Address: "alice.example.org",
     		    SessionID: 2890844526,
     		    SessionVersion: 2890844526,
     		},
