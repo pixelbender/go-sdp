@@ -61,7 +61,7 @@ func main() {
     		Origin: &sdp.Origin{
     		    Username: "alice",
     		    Address: "alice.example.org",
-    		    SessionID: 2890844526,
+    		    SessionId: 2890844526,
     		    SessionVersion: 2890844526,
     		},
     		Session: "Example",
@@ -89,3 +89,5 @@ func main() {
 - [RFC 5389: Session Description Protocol](https://tools.ietf.org/html/rfc4566)
 - [RFC 3264: Offer/Answer Model with SDP](https://tools.ietf.org/html/rfc3264)
 - [RFC 6871: SDP Media Capabilities Negotiation](https://tools.ietf.org/html/rfc6871)
+- [RFC 5761: Multiplexing RTP Data and Control Packets on a Single Port](https://tools.ietf.org/html/rfc5761)
+- [RFC 3605: RTCP attribute in SDP](https://tools.ietf.org/html/rfc3605)

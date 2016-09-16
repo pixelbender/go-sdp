@@ -5,12 +5,22 @@ import "time"
 // MediaType is the media type for an SDP session description.
 const MediaType = "application/sdp"
 
-// Sending and receiving modes for a media stream.
+// Attribute values for indication of a media stream direction.
+// See RFC 4566 Section 6.
 const (
 	ModeSendRecv = "sendrecv"
 	ModeRecvOnly = "recvonly"
 	ModeSendOnly = "sendonly"
 	ModeInactive = "inactive"
+)
+
+// Connection mode values for an SDP "setup" attribute.
+// See RFC 4145 Section 4.
+const (
+	SetupActive  = "active"
+	SetupPassive = "passive"
+	SetupActPass = "actpass"
+	SetupHold    = "holdconn"
 )
 
 // Description represents an SDP session description. RFC 4566 Section 5.
@@ -48,7 +58,7 @@ func Parse(text string) (*Description, error) {
 // Origin represents an originator of the session. RFC 4566 Section 5.2.
 type Origin struct {
 	Username       string
-	SessionID      int64
+	SessionId      int64
 	SessionVersion int64
 	Network        string
 	Type           string
@@ -68,6 +78,7 @@ type Media struct {
 	Key         *Key           // Encryption Keys ("k=")
 	Attributes  []*Attribute   // Attribute ("a=")
 	Mode        string
+	Control     *Control // RTCP description
 }
 
 // Format is a media format description represented by "rtpmap", "fmtp" SDP attributes.
@@ -80,6 +91,15 @@ type Format struct {
 	Params   []string
 }
 
+// Control contains description of an RTCP endpoint.
+type Control struct {
+	Muxed   bool
+	Network string
+	Type    string
+	Address string
+	Port    int
+}
+
 // Key contains a key exchange information.
 // It's use is not recommended, supported for compatibility with older implementations.
 type Key struct {
@@ -89,6 +109,13 @@ type Key struct {
 // Attribute represents an a session or media attribute. RFC 4566 Section 5.14.
 type Attribute struct {
 	Name, Value string
+}
+
+func (a *Attribute) String() string {
+	if a.Value == "" {
+		return a.Name
+	}
+	return a.Name + ":" + a.Value
 }
 
 // Connection contains connection data. RFC 4566 Section 5.7.

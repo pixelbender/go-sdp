@@ -76,22 +76,48 @@ func (dec *Decoder) decodeSessionAttributes(desc *Description) error {
 	return nil
 }
 
-func (dec *Decoder) decodeMediaAttributes(m *Media) error {
+func (dec *Decoder) decodeMediaAttributes(m *Media) (err error) {
 	n := 0
 	for _, it := range m.Attributes {
 		switch it.Name {
 		case ModeSendRecv, ModeRecvOnly, ModeSendOnly, ModeInactive:
 			m.Mode = it.Name
 		case "rtpmap":
-			dec.decodeMediaMap(m, it.Value)
+			err = dec.decodeMediaMap(m, it.Value)
+		case "rtcp":
+			err = dec.decodeControl(m, it.Value)
+		case "rtcp-mux":
+			if m.Control == nil {
+				m.Control = &Control{Muxed: true}
+			}
 		case "fmtp":
-			dec.decodeMediaParams(m, it.Value)
+			err = dec.decodeMediaParams(m, it.Value)
 		default:
 			m.Attributes[n] = it
 			n++
 		}
+		if err != nil {
+			return err
+		}
 	}
 	m.Attributes = m.Attributes[:n]
+	return nil
+}
+
+func (dec *Decoder) decodeControl(m *Media, v string) (err error) {
+	if m.Control == nil {
+		m.Control = &Control{}
+	}
+	if !dec.split(v, ' ', 4, true) {
+		return dec.err
+	}
+	c := m.Control
+	if c.Port, err = strconv.Atoi(dec.p[0]); err != nil {
+		return
+	}
+	c.Network = dec.p[1]
+	c.Type = dec.p[2]
+	c.Address = dec.p[3]
 	return nil
 }
 
@@ -307,7 +333,7 @@ func (dec *Decoder) decodeOrigin(v string) (o *Origin, err error) {
 		Type:     dec.p[4],
 		Address:  dec.p[5],
 	}
-	if o.SessionID, err = dec.parseInt(dec.p[1]); err != nil {
+	if o.SessionId, err = dec.parseInt(dec.p[1]); err != nil {
 		return nil, err
 	}
 	if o.SessionVersion, err = dec.parseInt(dec.p[2]); err != nil {

@@ -50,7 +50,7 @@ a=fmtp:100 profile-level-id=42c01f;level-asymmetry-allowed=1`
 			{desc.Version, 0},
 			{desc.Origin, &Origin{
 				Username:       "jdoe",
-				SessionID:      2890844526,
+				SessionId:      2890844526,
 				SessionVersion: 2890842807,
 				Network:        "IN",
 				Type:           "IP4",

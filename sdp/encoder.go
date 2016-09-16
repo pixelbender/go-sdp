@@ -173,7 +173,17 @@ func (enc *Encoder) encodeMediaDesc(m *Media) {
 		enc.char(' ')
 		enc.int(int64(p))
 	}
-
+	if c := m.Control; c != nil {
+		if c.Muxed {
+			enc.line('a')
+			enc.string("rtcp-mux")
+		} else {
+			enc.line('a')
+			enc.string("rtcp:")
+			enc.int(int64(c.Port))
+			enc.encodeConn(c.Network, c.Type, c.Address)
+		}
+	}
 	if m.Information != "" {
 		enc.line('i')
 		enc.string(m.Information)
@@ -322,7 +332,7 @@ func (enc *Encoder) encodeOrigin(orig *Origin) {
 		enc.string(orig.Username)
 	}
 	enc.char(' ')
-	enc.int(orig.SessionID)
+	enc.int(orig.SessionId)
 	enc.char(' ')
 	enc.int(orig.SessionVersion)
 	enc.char(' ')
@@ -337,7 +347,7 @@ func (enc *Encoder) encodeConn(network, typ, addr string) {
 		typ = "IP4"
 	}
 	if addr == "" {
-		addr = "0.0.0.0"
+		addr = "127.0.0.1"
 	}
 	enc.fields(network, typ, addr)
 }
