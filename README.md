@@ -88,6 +88,10 @@ func main() {
 
 - [RFC 5389: Session Description Protocol](https://tools.ietf.org/html/rfc4566)
 - [RFC 3264: Offer/Answer Model with SDP](https://tools.ietf.org/html/rfc3264)
+- [RFC 5939: SDP Capability Negotiation](https://tools.ietf.org/html/rfc5939)
 - [RFC 6871: SDP Media Capabilities Negotiation](https://tools.ietf.org/html/rfc6871)
 - [RFC 5761: Multiplexing RTP Data and Control Packets on a Single Port](https://tools.ietf.org/html/rfc5761)
-- [RFC 3605: RTCP attribute in SDP](https://tools.ietf.org/html/rfc3605)
+- [RFC 5888: SDP Grouping Framework](https://tools.ietf.org/html/rfc5888)
+- [RFC 4145: TCP-Based Media Transport in SDP](https://tools.ietf.org/html/rfc4145)
+- [RFC 4572: Connection-Oriented Media Transport over TLS in SDP](https://tools.ietf.org/html/rfc4572)
+- [Draft: Using the SDP Offer/Answer Mechanism for DTLS](https://tools.ietf.org/html/draft-ietf-mmusic-dtls-sdp-14)

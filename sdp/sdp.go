@@ -38,8 +38,10 @@ type Description struct {
 	TimeZones   []*TimeZone    // TimeZone ("t=")
 	Key         *Key           // Encryption Keys ("k=")
 	Attributes  []*Attribute   // Attribute ("a=")
-	Media       []*Media       // Media Descriptions ("m=")
+	Groups      []*Group
+	Media       []*Media // Media Descriptions ("m=")
 	Mode        string
+	Setup       string
 }
 
 // String returns the encoded session description according the SDP specification.
@@ -65,8 +67,16 @@ type Origin struct {
 	Address        string
 }
 
+// Group represents a grouping attributes of SDP Grouping Framework.
+// See RFC 5888.
+type Group struct {
+	Semantics string
+	Media     []string
+}
+
 // Media contains media description. RFC 4566 Section 5.14.
 type Media struct {
+	Id          string
 	Type        string
 	Port        int
 	PortNum     int
@@ -79,6 +89,7 @@ type Media struct {
 	Attributes  []*Attribute   // Attribute ("a=")
 	Mode        string
 	Control     *Control // RTCP description
+	Setup       string
 }
 
 // Format is a media format description represented by "rtpmap", "fmtp" SDP attributes.

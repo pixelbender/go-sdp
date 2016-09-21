@@ -142,7 +142,20 @@ func (enc *Encoder) Encode(desc *Description) {
 		enc.encodeKey(k.Type, k.Value)
 	}
 	if desc.Mode != "" {
-		enc.encodeAttr(desc.Mode, "")
+		enc.line('a')
+		enc.string(desc.Mode)
+	}
+	if desc.Setup != "" {
+		enc.encodeAttr("setup", desc.Setup)
+	}
+	for _, g := range desc.Groups {
+		enc.line('a')
+		enc.string("group:")
+		enc.string(g.Semantics)
+		for _, it := range g.Media {
+			enc.char(' ')
+			enc.string(it)
+		}
 	}
 	for _, it := range desc.Attributes {
 		enc.encodeAttr(it.Name, it.Value)
@@ -173,17 +186,6 @@ func (enc *Encoder) encodeMediaDesc(m *Media) {
 		enc.char(' ')
 		enc.int(int64(p))
 	}
-	if c := m.Control; c != nil {
-		if c.Muxed {
-			enc.line('a')
-			enc.string("rtcp-mux")
-		} else {
-			enc.line('a')
-			enc.string("rtcp:")
-			enc.int(int64(c.Port))
-			enc.encodeConn(c.Network, c.Type, c.Address)
-		}
-	}
 	if m.Information != "" {
 		enc.line('i')
 		enc.string(m.Information)
@@ -198,11 +200,31 @@ func (enc *Encoder) encodeMediaDesc(m *Media) {
 	if k := m.Key; k != nil {
 		enc.encodeKey(k.Type, k.Value)
 	}
+	if c := m.Control; c != nil {
+		if c.Muxed {
+			enc.line('a')
+			enc.string("rtcp-mux")
+		} else {
+			enc.line('a')
+			enc.string("rtcp:")
+			enc.int(int64(c.Port))
+			enc.encodeConn(c.Network, c.Type, c.Address)
+		}
+	}
+	if m.Id != "" {
+		enc.line('a')
+		enc.string("mid:")
+		enc.string(m.Id)
+	}
 	for _, p := range fmts {
 		enc.encodeMediaMap(m.Formats[p])
 	}
 	if m.Mode != "" {
-		enc.encodeAttr(m.Mode, "")
+		enc.line('a')
+		enc.string(m.Mode)
+	}
+	if m.Setup != "" {
+		enc.encodeAttr("setup", m.Setup)
 	}
 	for _, it := range m.Attributes {
 		enc.encodeAttr(it.Name, it.Value)

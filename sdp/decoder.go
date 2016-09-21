@@ -67,6 +67,14 @@ func (dec *Decoder) decodeSessionAttributes(desc *Description) error {
 		switch it.Name {
 		case ModeSendRecv, ModeRecvOnly, ModeSendOnly, ModeInactive:
 			desc.Mode = it.Name
+		case "group":
+			dec.split(it.Value, ' ', 255, false)
+			desc.Groups = append(desc.Groups, &Group{
+				Semantics: dec.p[0],
+				Media:     dec.p[1:],
+			})
+		case "setup":
+			desc.Setup = it.Value
 		default:
 			desc.Attributes[n] = it
 			n++
@@ -82,6 +90,10 @@ func (dec *Decoder) decodeMediaAttributes(m *Media) (err error) {
 		switch it.Name {
 		case ModeSendRecv, ModeRecvOnly, ModeSendOnly, ModeInactive:
 			m.Mode = it.Name
+		case "mid":
+			m.Id = it.Value
+		case "setup":
+			m.Setup = it.Value
 		case "rtpmap":
 			err = dec.decodeMediaMap(m, it.Value)
 		case "rtcp":
