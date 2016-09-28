@@ -76,7 +76,7 @@ type Group struct {
 
 // Media contains media description. RFC 4566 Section 5.14.
 type Media struct {
-	ID          string
+	ID          string // Media identification for the SDP grouping framework
 	Type        string
 	Port        int
 	PortNum     int
