@@ -16,7 +16,7 @@ func TestEncode(t *testing.T) {
 	desc := &Description{
 		Origin: &Origin{
 			Username:       "jdoe",
-			SessionId:      2890844526,
+			SessionID:      2890844526,
 			SessionVersion: 2890842807,
 			Network:        "IN",
 			Type:           "IP4",
@@ -112,7 +112,7 @@ func TestReadmeExampleEncode(t *testing.T) {
 		Origin: &Origin{
 			Username:       "alice",
 			Address:        "alice.example.org",
-			SessionId:      2890844526,
+			SessionID:      2890844526,
 			SessionVersion: 2890844526,
 		},
 		Session:    "Example",

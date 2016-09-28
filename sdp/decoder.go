@@ -91,7 +91,7 @@ func (dec *Decoder) decodeMediaAttributes(m *Media) (err error) {
 		case ModeSendRecv, ModeRecvOnly, ModeSendOnly, ModeInactive:
 			m.Mode = it.Name
 		case "mid":
-			m.Id = it.Value
+			m.ID = it.Value
 		case "setup":
 			m.Setup = it.Value
 		case "rtpmap":
@@ -345,7 +345,7 @@ func (dec *Decoder) decodeOrigin(v string) (o *Origin, err error) {
 		Type:     dec.p[4],
 		Address:  dec.p[5],
 	}
-	if o.SessionId, err = dec.parseInt(dec.p[1]); err != nil {
+	if o.SessionID, err = dec.parseInt(dec.p[1]); err != nil {
 		return nil, err
 	}
 	if o.SessionVersion, err = dec.parseInt(dec.p[2]); err != nil {

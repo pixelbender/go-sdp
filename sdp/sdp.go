@@ -60,7 +60,7 @@ func Parse(text string) (*Description, error) {
 // Origin represents an originator of the session. RFC 4566 Section 5.2.
 type Origin struct {
 	Username       string
-	SessionId      int64
+	SessionID      int64
 	SessionVersion int64
 	Network        string
 	Type           string
@@ -76,7 +76,7 @@ type Group struct {
 
 // Media contains media description. RFC 4566 Section 5.14.
 type Media struct {
-	Id          string
+	ID          string
 	Type        string
 	Port        int
 	PortNum     int

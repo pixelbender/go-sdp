@@ -211,10 +211,10 @@ func (enc *Encoder) encodeMediaDesc(m *Media) {
 			enc.encodeConn(c.Network, c.Type, c.Address)
 		}
 	}
-	if m.Id != "" {
+	if m.ID != "" {
 		enc.line('a')
 		enc.string("mid:")
-		enc.string(m.Id)
+		enc.string(m.ID)
 	}
 	for _, p := range fmts {
 		enc.encodeMediaMap(m.Formats[p])
@@ -354,7 +354,7 @@ func (enc *Encoder) encodeOrigin(orig *Origin) {
 		enc.string(orig.Username)
 	}
 	enc.char(' ')
-	enc.int(orig.SessionId)
+	enc.int(orig.SessionID)
 	enc.char(' ')
 	enc.int(orig.SessionVersion)
 	enc.char(' ')

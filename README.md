@@ -61,7 +61,7 @@ func main() {
     		Origin: &sdp.Origin{
     		    Username: "alice",
     		    Address: "alice.example.org",
-    		    SessionId: 2890844526,
+    		    SessionID: 2890844526,
     		    SessionVersion: 2890844526,
     		},
     		Session: "Example",
