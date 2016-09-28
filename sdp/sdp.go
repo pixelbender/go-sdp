@@ -38,10 +38,10 @@ type Description struct {
 	TimeZones   []*TimeZone    // TimeZone ("t=")
 	Key         *Key           // Encryption Keys ("k=")
 	Attributes  []*Attribute   // Attribute ("a=")
-	Groups      []*Group
-	Media       []*Media // Media Descriptions ("m=")
-	Mode        string
-	Setup       string
+	Groups      []*Group       // Grouping ("a=group:")
+	Media       []*Media       // Media Descriptions ("m=")
+	Mode        string         // Media direction attribute
+	Setup       string         // Setup attribute ("a=setup:")
 }
 
 // String returns the encoded session description according the SDP specification.
@@ -87,9 +87,9 @@ type Media struct {
 	Bandwidth   map[string]int // Bandwidth ("b=")
 	Key         *Key           // Encryption Keys ("k=")
 	Attributes  []*Attribute   // Attribute ("a=")
-	Mode        string
-	Control     *Control // RTCP description
-	Setup       string
+	Mode        string         // Media direction attribute
+	Control     *Control       // RTCP description
+	Setup       string         // Setup attribute ("a=setup:")
 }
 
 // Format is a media format description represented by "rtpmap", "fmtp" SDP attributes.
