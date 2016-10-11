@@ -1,4 +1,6 @@
-# Golang: SDP Protocol
+# Golang: SDP – Session Description Protocol
+
+Golang implementation of Session Description Protocol
 
 [![Build Status](https://travis-ci.org/pixelbender/go-sdp.svg)](https://travis-ci.org/pixelbender/go-sdp)
 [![Coverage Status](https://coveralls.io/repos/github/pixelbender/go-sdp/badge.svg?branch=master)](https://coveralls.io/github/pixelbender/go-sdp?branch=master)
@@ -7,7 +9,7 @@
 
 ## Features
 
-- [x] SDP Decoder/Encoder
+- [x] SDP Encoder/Decoder
 - [ ] SDP Answer/Offer Negotiation
 - [ ] SDP Media Capabilities Negotiation
 

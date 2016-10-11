@@ -66,6 +66,8 @@ func TestEncode(t *testing.T) {
 					99: {Payload: 99, Codec: "h263-1998", Clock: 90000},
 					100: {Payload: 100, Codec: "H264", Clock: 90000, Params: []string{
 						"profile-level-id=42c01f;level-asymmetry-allowed=1",
+					}, Feedback: []string{
+						"ccm fir", "nack", "nack pli",
 					}},
 				},
 			},
@@ -89,6 +91,9 @@ m=audio 49170 RTP/AVP 0
 m=video 51372 RTP/AVP 99 100
 a=rtpmap:99 h263-1998/90000
 a=rtpmap:100 H264/90000
+a=rtcp-fb:100 ccm fir
+a=rtcp-fb:100 nack
+a=rtcp-fb:100 nack pli
 a=fmtp:100 profile-level-id=42c01f;level-asymmetry-allowed=1`
 	a := strings.Split(desc.String(), "\r\n")
 	b := strings.Split(expected, "\n")

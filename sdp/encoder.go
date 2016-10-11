@@ -251,6 +251,13 @@ func (enc *Encoder) encodeMediaMap(f *Format) {
 		enc.char('/')
 		enc.int(int64(f.Channels))
 	}
+	for _, it := range f.Feedback {
+		enc.line('a')
+		enc.string("rtcp-fb:")
+		enc.int(int64(f.Payload))
+		enc.char(' ')
+		enc.string(it)
+	}
 	for _, it := range f.Params {
 		enc.line('a')
 		enc.string("fmtp:")

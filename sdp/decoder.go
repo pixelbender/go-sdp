@@ -98,6 +98,8 @@ func (dec *Decoder) decodeMediaAttributes(m *Media) (err error) {
 			err = dec.decodeMediaMap(m, it.Value)
 		case "rtcp":
 			err = dec.decodeControl(m, it.Value)
+		case "rtcp-fb":
+			err = dec.decodeControlFeedback(m, it.Value)
 		case "rtcp-mux":
 			if m.Control == nil {
 				m.Control = &Control{Muxed: true}
@@ -130,6 +132,19 @@ func (dec *Decoder) decodeControl(m *Media, v string) (err error) {
 	c.Network = dec.p[1]
 	c.Type = dec.p[2]
 	c.Address = dec.p[3]
+	return nil
+}
+
+func (dec *Decoder) decodeControlFeedback(m *Media, v string) (err error) {
+	if !dec.split(v, ' ', 2, true) {
+		return dec.err
+	}
+	p, err := strconv.Atoi(dec.p[0])
+	if err != nil {
+		return err
+	}
+	f := dec.touchMediaFormat(m, p)
+	f.Feedback = append(f.Feedback, v)
 	return nil
 }
 

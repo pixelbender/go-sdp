@@ -27,6 +27,9 @@ m=audio 49170 RTP/AVP 0
 m=video 51372 RTP/AVP 99 100
 a=rtpmap:99 h263-1998/90000
 a=rtpmap:100 H264/90000
+a=rtcp-fb:100 ccm fir
+a=rtcp-fb:100 nack
+a=rtcp-fb:100 nack pli
 a=fmtp:100 profile-level-id=42c01f;level-asymmetry-allowed=1`
 	layout := "2006-01-02 15:04:05 -0700 MST"
 	start, _ := time.Parse(layout, "1996-02-27 15:26:59 +0000 UTC")
@@ -87,6 +90,7 @@ a=fmtp:100 profile-level-id=42c01f;level-asymmetry-allowed=1`
 			{video.Port, 51372},
 			{video.Proto, "RTP/AVP"},
 			{video.Formats[99], &Format{Payload: 99, Codec: "h263-1998", Clock: 90000}},
+			{video.Formats[100].Feedback, []string{"ccm fir", "nack", "nack pli"}},
 			{video.Formats[100].Params, []string{"profile-level-id=42c01f;level-asymmetry-allowed=1"}},
 		} {
 			if !reflect.DeepEqual(it.found, it.expected) {
