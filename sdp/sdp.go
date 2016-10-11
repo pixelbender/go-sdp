@@ -1,6 +1,8 @@
 package sdp
 
-import "time"
+import (
+	"time"
+)
 
 // MediaType is the media type for an SDP session description.
 const MediaType = "application/sdp"
@@ -43,6 +45,12 @@ type Description struct {
 	Mode        string         // Media direction attribute
 	Setup       string         // Setup attribute ("a=setup:")
 }
+
+// Bandwidth types for a bandwidth attribute.
+const (
+	BandwidthConferenceTotal     = "CT"
+	BandwidthApplicationSpecific = "AS"
+)
 
 // String returns the encoded session description according the SDP specification.
 func (desc *Description) String() string {
@@ -131,9 +139,11 @@ func (a *Attribute) String() string {
 
 // Connection contains connection data. RFC 4566 Section 5.7.
 type Connection struct {
-	Network string
-	Type    string
-	Address string
+	Network    string
+	Type       string
+	Address    string
+	TTL        int
+	AddressNum int
 }
 
 // Timing specifies start and stop times for a session.

@@ -8,11 +8,9 @@ import (
 
 func TestEncode(t *testing.T) {
 	t.Parallel()
-
 	layout := "2006-01-02 15:04:05 -0700 MST"
 	start, _ := time.Parse(layout, "1996-02-27 15:26:59 +0000 UTC")
 	stop, _ := time.Parse(layout, "1996-05-30 16:26:59 +0000 UTC")
-
 	desc := &Description{
 		Origin: &Origin{
 			Username:       "jdoe",
@@ -33,7 +31,7 @@ func TestEncode(t *testing.T) {
 			Address: "224.2.17.12/127",
 		},
 		Bandwidth: map[string]int{
-			"AS": 2000,
+			BandwidthApplicationSpecific: 2000,
 		},
 		Timing: &Timing{
 			Start: start,
@@ -74,7 +72,6 @@ func TestEncode(t *testing.T) {
 		},
 		Mode: ModeRecvOnly,
 	}
-
 	expected := `v=0
 o=jdoe 2890844526 2890842807 IN IP4 10.47.16.5
 s=SDP Seminar
@@ -93,7 +90,6 @@ m=video 51372 RTP/AVP 99 100
 a=rtpmap:99 h263-1998/90000
 a=rtpmap:100 H264/90000
 a=fmtp:100 profile-level-id=42c01f;level-asymmetry-allowed=1`
-
 	a := strings.Split(desc.String(), "\r\n")
 	b := strings.Split(expected, "\n")
 	if len(b) > len(a) {
@@ -131,6 +127,13 @@ func TestReadmeExampleEncode(t *testing.T) {
 		Mode: ModeSendRecv,
 	}
 	if len(desc.String()) != 182 {
+		t.Fail()
+	}
+}
+
+func TestAttributeString(t *testing.T) {
+	attr := &Attribute{Name: "rtcp-mux"}
+	if attr.String() != "rtcp-mux" {
 		t.Fail()
 	}
 }

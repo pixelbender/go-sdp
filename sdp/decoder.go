@@ -361,7 +361,16 @@ func (dec *Decoder) decodeConn(v string) (c *Connection, err error) {
 	c = &Connection{
 		Network: dec.p[0],
 		Type:    dec.p[1],
-		Address: dec.p[2],
+	}
+	dec.split(dec.p[2], '/', 3, false)
+	c.Address = dec.p[0]
+	if len(dec.p) > 1 {
+		if c.TTL, err = strconv.Atoi(dec.p[1]); err != nil {
+			return
+		}
+		if len(dec.p) > 2 {
+			c.AddressNum, err = strconv.Atoi(dec.p[2])
+		}
 	}
 	return
 }

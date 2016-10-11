@@ -9,7 +9,6 @@ import (
 
 func TestDecode(t *testing.T) {
 	t.Parallel()
-
 	sdp := `v=0
 o=jdoe 2890844526 2890842807 IN IP4 10.47.16.5
 s=SDP Seminar
@@ -29,23 +28,19 @@ m=video 51372 RTP/AVP 99 100
 a=rtpmap:99 h263-1998/90000
 a=rtpmap:100 H264/90000
 a=fmtp:100 profile-level-id=42c01f;level-asymmetry-allowed=1`
-
 	layout := "2006-01-02 15:04:05 -0700 MST"
 	start, _ := time.Parse(layout, "1996-02-27 15:26:59 +0000 UTC")
 	stop, _ := time.Parse(layout, "1996-05-30 16:26:59 +0000 UTC")
-
 	for _, dec := range []*Decoder{
 		NewDecoder(strings.NewReader(sdp)),
 		NewDecoderString(sdp),
 	} {
-
 		desc, err := dec.Decode()
 		if err != nil {
 			t.Fatal(err)
 			return
 		}
 		audio, video := desc.Media[0], desc.Media[1]
-
 		for _, it := range []struct{ found, expected interface{} }{
 			{desc.Version, 0},
 			{desc.Origin, &Origin{
@@ -66,7 +61,8 @@ a=fmtp:100 profile-level-id=42c01f;level-asymmetry-allowed=1`
 			{desc.Connection, &Connection{
 				Network: "IN",
 				Type:    "IP4",
-				Address: "224.2.17.12/127",
+				Address: "224.2.17.12",
+				TTL:     127,
 			}},
 			{desc.Timing.Start, start},
 			{desc.Timing.Stop, stop},
@@ -116,6 +112,19 @@ a=rtpmap:8 PCMA/8000`)
 		t.Fatal(err)
 	}
 	if desc.Media[0].Formats[0].Codec != "PCMU" {
+		t.Fail()
+	}
+}
+
+func TestMuxedControl(t *testing.T) {
+	t.Parallel()
+	desc, err := Parse(`v=0
+m=audio 10000 RTP/AVP 0 8
+a=rtcp-mux`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !desc.Media[0].Control.Muxed {
 		t.Fail()
 	}
 }

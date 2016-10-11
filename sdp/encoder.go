@@ -29,7 +29,12 @@ func (enc *Encoder) next(n int) (b []byte) {
 
 func (enc *Encoder) grow(n int) {
 	p := enc.pos + n
-	b := make([]byte, (1+((p-1)>>10))<<10)
+	if p < 1024 {
+		p = 1024
+	} else if s := len(enc.buf) << 1; p < s {
+		p = s
+	}
+	b := make([]byte, p)
 	if enc.pos > 0 {
 		copy(b, enc.buf[:enc.pos])
 	}
@@ -51,9 +56,9 @@ func (enc *Encoder) line(typ byte) {
 	}
 }
 
-func (enc *Encoder) char(ch byte) {
+func (enc *Encoder) char(v byte) {
 	b := enc.next(1)
-	b[0] = ch
+	b[0] = v
 }
 
 func (enc *Encoder) int(v int64) {
@@ -130,7 +135,7 @@ func (enc *Encoder) Encode(desc *Description) {
 	enc.encodeList('p', desc.Phone)
 	if c := desc.Connection; c != nil {
 		enc.line('c')
-		enc.encodeConn(c.Network, c.Type, c.Address)
+		enc.encodeConn(c)
 	}
 	for typ, v := range desc.Bandwidth {
 		enc.encodeBandwidth(typ, v)
@@ -192,7 +197,7 @@ func (enc *Encoder) encodeMediaDesc(m *Media) {
 	}
 	if c := m.Connection; c != nil {
 		enc.line('c')
-		enc.encodeConn(c.Network, c.Type, c.Address)
+		enc.encodeConn(c)
 	}
 	for typ, v := range m.Bandwidth {
 		enc.encodeBandwidth(typ, v)
@@ -208,7 +213,7 @@ func (enc *Encoder) encodeMediaDesc(m *Media) {
 			enc.line('a')
 			enc.string("rtcp:")
 			enc.int(int64(c.Port))
-			enc.encodeConn(c.Network, c.Type, c.Address)
+			enc.encodeTransport(c.Network, c.Type, c.Address)
 		}
 	}
 	if m.ID != "" {
@@ -358,10 +363,22 @@ func (enc *Encoder) encodeOrigin(orig *Origin) {
 	enc.char(' ')
 	enc.int(orig.SessionVersion)
 	enc.char(' ')
-	enc.encodeConn(orig.Network, orig.Type, orig.Address)
+	enc.encodeTransport(orig.Network, orig.Type, orig.Address)
 }
 
-func (enc *Encoder) encodeConn(network, typ, addr string) {
+func (enc *Encoder) encodeConn(c *Connection) {
+	enc.encodeTransport(c.Network, c.Type, c.Address)
+	if c.TTL != 0 {
+		enc.char('/')
+		enc.int(int64(c.TTL))
+		if c.AddressNum != 0 {
+			enc.char('/')
+			enc.int(int64(c.AddressNum))
+		}
+	}
+}
+
+func (enc *Encoder) encodeTransport(network, typ, addr string) {
 	if network == "" {
 		network = "IN"
 	}
