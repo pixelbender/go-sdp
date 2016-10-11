@@ -1,6 +1,6 @@
-# Golang: SDP – Session Description Protocol
+# go-sdp
 
-Golang implementation of Session Description Protocol
+Go implementation of SDP (Session Description Protocol)
 
 [![Build Status](https://travis-ci.org/pixelbender/go-sdp.svg)](https://travis-ci.org/pixelbender/go-sdp)
 [![Coverage Status](https://coveralls.io/repos/github/pixelbender/go-sdp/badge.svg?branch=master)](https://coveralls.io/github/pixelbender/go-sdp?branch=master)
