@@ -144,7 +144,7 @@ func (dec *Decoder) decodeControlFeedback(m *Media, v string) (err error) {
 		return err
 	}
 	f := dec.touchMediaFormat(m, p)
-	f.Feedback = append(f.Feedback, v)
+	f.Feedback = append(f.Feedback, dec.p[1])
 	return nil
 }
 
