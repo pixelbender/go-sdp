@@ -297,7 +297,7 @@ func (dec *Decoder) decodeSessionDesc(desc *Description, k byte, v string) (err 
 	case 'k':
 		desc.Key, err = dec.decodeKey(v)
 	case 'a':
-		var attr *Attribute
+		var attr *Attr
 		if attr, err = dec.decodeAttr(v); err == nil {
 			desc.Attributes = append(desc.Attributes, attr)
 		}
@@ -326,7 +326,7 @@ func (dec *Decoder) decodeMediaDesc(m *Media, k byte, v string) (err error) {
 	case 'k':
 		m.Key, err = dec.decodeKey(v)
 	case 'a':
-		var attr *Attribute
+		var attr *Attr
 		if attr, err = dec.decodeAttr(v); err == nil {
 			m.Attributes = append(m.Attributes, attr)
 		}
@@ -336,11 +336,11 @@ func (dec *Decoder) decodeMediaDesc(m *Media, k byte, v string) (err error) {
 	return
 }
 
-func (dec *Decoder) decodeAttr(v string) (*Attribute, error) {
+func (dec *Decoder) decodeAttr(v string) (*Attr, error) {
 	if dec.split(v, ':', 2, false) {
-		return &Attribute{Name: dec.p[0], Value: dec.p[1]}, nil
+		return &Attr{Name: dec.p[0], Value: dec.p[1]}, nil
 	}
-	return &Attribute{Name: dec.p[0]}, nil
+	return &Attr{Name: dec.p[0]}, nil
 }
 
 func (dec *Decoder) decodeKey(v string) (*Key, error) {
@@ -525,4 +525,4 @@ func (d decodeError) Error() string {
 	return "sdp: decode error '" + string(d) + "'"
 }
 
-var ntpEpoch = time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC)
+var ntpEpoch = time.Date(1900, time.January, 1, 0, 0, 0, 0, time.UTC)

@@ -39,11 +39,24 @@ type Description struct {
 	Timing      *Timing        // Timing ("t=")
 	TimeZones   []*TimeZone    // TimeZone ("t=")
 	Key         *Key           // Encryption Keys ("k=")
-	Attributes  []*Attribute   // Attribute ("a=")
+	Attributes  Attributes     // Attributes ("a=")
 	Groups      []*Group       // Grouping ("a=group:")
 	Media       []*Media       // Media Descriptions ("m=")
 	Mode        string         // Media direction attribute
 	Setup       string         // Setup attribute ("a=setup:")
+}
+
+// Attributes represent a list of SDP attributes
+type Attributes []*Attr
+
+// Get returns first attribute value by name n
+func (a Attributes) Get(n string) string {
+	for _, it := range a {
+		if it.Name == n {
+			return it.Value
+		}
+	}
+	return ""
 }
 
 // Bandwidth types for a bandwidth attribute.
@@ -94,7 +107,7 @@ type Media struct {
 	Connection  *Connection    // Connection Data ("c=")
 	Bandwidth   map[string]int // Bandwidth ("b=")
 	Key         *Key           // Encryption Keys ("k=")
-	Attributes  []*Attribute   // Attribute ("a=")
+	Attributes  Attributes     // Attributes ("a=")
 	Mode        string         // Media direction attribute
 	Control     *Control       // RTCP description
 	Setup       string         // Setup attribute ("a=setup:")
@@ -125,12 +138,12 @@ type Key struct {
 	Type, Value string
 }
 
-// Attribute represents an a session or media attribute. RFC 4566 Section 5.14.
-type Attribute struct {
+// Attr represents an a session or media attribute. RFC 4566 Section 5.14.
+type Attr struct {
 	Name, Value string
 }
 
-func (a *Attribute) String() string {
+func (a *Attr) String() string {
 	if a.Value == "" {
 		return a.Name
 	}

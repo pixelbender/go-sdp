@@ -137,7 +137,7 @@ func TestReadmeExampleEncode(t *testing.T) {
 }
 
 func TestAttributeString(t *testing.T) {
-	attr := &Attribute{Name: "rtcp-mux"}
+	attr := &Attr{Name: "rtcp-mux"}
 	if attr.String() != "rtcp-mux" {
 		t.Fail()
 	}
