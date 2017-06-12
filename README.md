@@ -16,7 +16,7 @@ Go implementation of SDP (Session Description Protocol)
 ## Installation
 
 ```sh
-go get github.com/pixelbender/go-sdp
+go get github.com/pixelbender/go-sdp/sdp
 ```
 
 ## SDP Decoding
