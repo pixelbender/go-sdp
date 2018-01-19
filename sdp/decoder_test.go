@@ -132,3 +132,17 @@ a=rtcp-mux`)
 		t.Fail()
 	}
 }
+
+func TestGroupBundle(t *testing.T) {
+	t.Parallel()
+	desc, err := Parse(`v=0
+a=group:BUNDLE audio
+m=audio 10000 RTP/AVP 0 8
+a=rtpmap:126 telephone-event/8000`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if desc.Groups[0].Media[0] != "audio" {
+		t.Fail()
+	}
+}

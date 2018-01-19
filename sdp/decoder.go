@@ -198,7 +198,7 @@ func (dec *Decoder) touchMediaFormat(m *Media, p int) *Format {
 }
 
 func (dec *Decoder) split(v string, sep rune, n int, required bool) bool {
-	p := dec.p[:0]
+	p := make([]string, 0, 1)
 	off := 0
 	for i, it := range v {
 		if it == sep {
