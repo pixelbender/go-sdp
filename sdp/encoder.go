@@ -226,6 +226,13 @@ func (enc *Encoder) encodeMediaDesc(m *Media) {
 			enc.string("rtcp-mux")
 		}
 	}
+	for _, f := range m.Fingerprints {
+		enc.line('a')
+		enc.string("fingerprint:")
+		enc.string(f.HashFunc)
+		enc.char(' ')
+		enc.string(f.Fingerprint)
+	}
 	if m.ID != "" {
 		enc.line('a')
 		enc.string("mid:")

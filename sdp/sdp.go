@@ -98,20 +98,27 @@ type Group struct {
 
 // Media contains media description. RFC 4566 Section 5.14.
 type Media struct {
-	ID          string // Media identification for the SDP grouping framework
-	Type        string
-	Port        int
-	PortNum     int
-	Proto       string
-	Formats     map[int]*Format
-	Information string         // Media Information ("i=")
-	Connection  *Connection    // Connection Data ("c=")
-	Bandwidth   map[string]int // Bandwidth ("b=")
-	Key         *Key           // Encryption Keys ("k=")
-	Attributes  Attributes     // Attributes ("a=")
-	Mode        string         // Media direction attribute
-	Control     *Control       // RTCP description
-	Setup       string         // Setup attribute ("a=setup:")
+	ID           string // Media identification for the SDP grouping framework
+	Type         string
+	Port         int
+	PortNum      int
+	Proto        string
+	Formats      map[int]*Format
+	Information  string         // Media Information ("i=")
+	Connection   *Connection    // Connection Data ("c=")
+	Bandwidth    map[string]int // Bandwidth ("b=")
+	Key          *Key           // Encryption Keys ("k=")
+	Attributes   Attributes     // Attributes ("a=")
+	Mode         string         // Media direction attribute
+	Control      *Control       // RTCP description
+	Setup        string         // Setup attribute ("a=setup:")
+	Fingerprints []Fingerprint  // Fingerprints attribute ("a=fingerprint:")
+}
+
+// Fingerprint according to RFC 8122
+type Fingerprint struct {
+	HashFunc    string // one of 'SHA-1', 'SHA-224', 'SHA-256', 'SHA-384', 'SHA-512', 'MD5', 'MD2'
+	Fingerprint string // Each byte in upper-case hex, separated by colons
 }
 
 // MsidSemantic is semantics acording to https://tools.ietf.org/html/draft-ietf-mmusic-msid-06

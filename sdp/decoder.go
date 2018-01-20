@@ -117,6 +117,8 @@ func (dec *Decoder) decodeMediaAttributes(m *Media) (err error) {
 			}
 		case "fmtp":
 			err = dec.decodeMediaParams(m, it.Value)
+		case "fingerprint":
+			err = dec.decodeFingerprint(m, it.Value)
 		default:
 			m.Attributes[n] = it
 			n++
@@ -193,6 +195,17 @@ func (dec *Decoder) decodeMediaParams(m *Media, v string) error {
 	}
 	f := dec.touchMediaFormat(m, p)
 	f.Params = append(f.Params, dec.p[1])
+	return nil
+}
+
+func (dec *Decoder) decodeFingerprint(m *Media, v string) error {
+	if !dec.split(v, ' ', 2, true) {
+		return dec.err
+	}
+	m.Fingerprints = append(m.Fingerprints, Fingerprint{
+		HashFunc:    dec.p[0],
+		Fingerprint: dec.p[1],
+	})
 	return nil
 }
 
