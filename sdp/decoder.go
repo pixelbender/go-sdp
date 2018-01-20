@@ -112,6 +112,8 @@ func (dec *Decoder) decodeMediaAttributes(m *Media) (err error) {
 		case "rtcp-mux":
 			if m.Control == nil {
 				m.Control = &Control{Muxed: true}
+			} else {
+				m.Control.Muxed = true
 			}
 		case "fmtp":
 			err = dec.decodeMediaParams(m, it.Value)

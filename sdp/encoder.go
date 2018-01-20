@@ -215,14 +215,15 @@ func (enc *Encoder) encodeMediaDesc(m *Media) {
 		enc.encodeKey(k.Type, k.Value)
 	}
 	if c := m.Control; c != nil {
+
+		enc.line('a')
+		enc.string("rtcp:")
+		enc.int(int64(c.Port))
+		enc.char(' ')
+		enc.encodeTransport(c.Network, c.Type, c.Address)
 		if c.Muxed {
 			enc.line('a')
 			enc.string("rtcp-mux")
-		} else {
-			enc.line('a')
-			enc.string("rtcp:")
-			enc.int(int64(c.Port))
-			enc.encodeTransport(c.Network, c.Type, c.Address)
 		}
 	}
 	if m.ID != "" {

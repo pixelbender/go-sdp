@@ -142,3 +142,27 @@ func TestAttributeString(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestControlEncode(t *testing.T) {
+	m := &Media{
+		Type:  "audio",
+		Port:  10000,
+		Proto: "RTP/AVP",
+		Control: &Control{
+			Muxed:   true,
+			Network: "IN",
+			Type:    "IP4",
+			Address: "0.0.0.0",
+			Port:    9,
+		},
+	}
+	enc := NewEncoder()
+	enc.encodeMediaDesc(m)
+	sdp := strings.Replace(`m=audio 10000 RTP/AVP
+a=rtcp:9 IN IP4 0.0.0.0
+a=rtcp-mux
+`, "\n", "\r\n", -1)
+	if enc.String() != sdp {
+		t.Fail()
+	}
+}
