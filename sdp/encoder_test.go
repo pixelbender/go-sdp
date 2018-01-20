@@ -142,3 +142,54 @@ func TestAttributeString(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestControlEncode(t *testing.T) {
+	m := &Media{
+		Type:  "audio",
+		Port:  10000,
+		Proto: "RTP/AVP",
+		Control: &Control{
+			Muxed:   true,
+			Network: "IN",
+			Type:    "IP4",
+			Address: "0.0.0.0",
+			Port:    9,
+		},
+	}
+	enc := NewEncoder()
+	enc.encodeMediaDesc(m)
+	sdp := strings.Replace(`m=audio 10000 RTP/AVP
+a=rtcp:9 IN IP4 0.0.0.0
+a=rtcp-mux
+`, "\n", "\r\n", -1)
+	if enc.String() != sdp {
+		t.Fail()
+	}
+}
+
+func TestFingerprintEncode(t *testing.T) {
+	m := &Media{
+		Type:  "audio",
+		Port:  10000,
+		Proto: "RTP/AVP",
+		Fingerprints: []Fingerprint{
+			{
+				HashFunc:    "sha-256",
+				Fingerprint: "7D:4B:50:85:64:FD:E5:86:A9:09:26:D9:94:47:83:3F:69:C9:80:AD:F6:3C:B6:C5:04:67:29:88:31:BD:CE:3C",
+			},
+			{
+				HashFunc:    "SHA-1",
+				Fingerprint: "4A:AD:B9:B1:3F:82:18:3B:54:02:12:DF:3E:5D:49:6B:19:E5:7C:AB",
+			},
+		},
+	}
+	enc := NewEncoder()
+	enc.encodeMediaDesc(m)
+	sdp := strings.Replace(`m=audio 10000 RTP/AVP
+a=fingerprint:sha-256 7D:4B:50:85:64:FD:E5:86:A9:09:26:D9:94:47:83:3F:69:C9:80:AD:F6:3C:B6:C5:04:67:29:88:31:BD:CE:3C
+a=fingerprint:SHA-1 4A:AD:B9:B1:3F:82:18:3B:54:02:12:DF:3E:5D:49:6B:19:E5:7C:AB
+`, "\n", "\r\n", -1)
+	if enc.String() != sdp {
+		t.Fail()
+	}
+}

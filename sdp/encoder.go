@@ -162,6 +162,15 @@ func (enc *Encoder) Encode(desc *Description) {
 			enc.string(it)
 		}
 	}
+	if m := desc.MsidSemantic; m != nil {
+		enc.line('a')
+		enc.string("msid-semantic: ")
+		enc.string(m.Semantics)
+		for _, it := range m.Identifiers {
+			enc.char(' ')
+			enc.string(it)
+		}
+	}
 	for _, it := range desc.Attributes {
 		enc.encodeAttr(it.Name, it.Value)
 	}
@@ -206,15 +215,23 @@ func (enc *Encoder) encodeMediaDesc(m *Media) {
 		enc.encodeKey(k.Type, k.Value)
 	}
 	if c := m.Control; c != nil {
+
+		enc.line('a')
+		enc.string("rtcp:")
+		enc.int(int64(c.Port))
+		enc.char(' ')
+		enc.encodeTransport(c.Network, c.Type, c.Address)
 		if c.Muxed {
 			enc.line('a')
 			enc.string("rtcp-mux")
-		} else {
-			enc.line('a')
-			enc.string("rtcp:")
-			enc.int(int64(c.Port))
-			enc.encodeTransport(c.Network, c.Type, c.Address)
 		}
+	}
+	for _, f := range m.Fingerprints {
+		enc.line('a')
+		enc.string("fingerprint:")
+		enc.string(f.HashFunc)
+		enc.char(' ')
+		enc.string(f.Fingerprint)
 	}
 	if m.ID != "" {
 		enc.line('a')

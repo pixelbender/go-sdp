@@ -146,3 +146,44 @@ a=rtpmap:126 telephone-event/8000`)
 		t.Fail()
 	}
 }
+
+func TestMsidSemantics(t *testing.T) {
+	t.Parallel()
+	desc, err := Parse(`v=0
+a=msid-semantic: WMS`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if desc.MsidSemantic.Semantics != "WMS" {
+		t.Fail()
+	}
+
+	desc, err = Parse(`v=0
+a=msid-semantic: WMS foo bar`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if desc.MsidSemantic.Identifiers[0] != "foo" || desc.MsidSemantic.Identifiers[1] != "bar" {
+		t.Fail()
+	}
+}
+
+func TestFingerprintsDecode(t *testing.T) {
+	t.Parallel()
+	desc, err := Parse(`v=0
+m=audio 10000 RTP/AVP 0 8
+a=fingerprint:sha-256 7D:4B:50:85:64:FD:E5:86:A9:09:26:D9:94:47:83:3F:69:C9:80:AD:F6:3C:B6:C5:04:67:29:88:31:BD:CE:3C
+a=fingerprint:SHA-1 4A:AD:B9:B1:3F:82:18:3B:54:02:12:DF:3E:5D:49:6B:19:E5:7C:AB`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(desc.Media[0].Fingerprints) != 2 {
+		t.Fail()
+	}
+	if desc.Media[0].Fingerprints[0].HashFunc != "sha-256" {
+		t.Fail()
+	}
+	if desc.Media[0].Fingerprints[1].HashFunc != "SHA-1" {
+		t.Fail()
+	}
+}

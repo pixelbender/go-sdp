@@ -75,6 +75,15 @@ func (dec *Decoder) decodeSessionAttributes(desc *Description) error {
 			})
 		case "setup":
 			desc.Setup = it.Value
+		case "msid-semantic":
+			dec.split(it.Value, ' ', 255, false)
+			if dec.p[0] == "" {
+				dec.p = dec.p[1:]
+			}
+			desc.MsidSemantic = &MsidSemantic{
+				Semantics:   dec.p[0],
+				Identifiers: dec.p[1:],
+			}
 		default:
 			desc.Attributes[n] = it
 			n++
@@ -103,9 +112,13 @@ func (dec *Decoder) decodeMediaAttributes(m *Media) (err error) {
 		case "rtcp-mux":
 			if m.Control == nil {
 				m.Control = &Control{Muxed: true}
+			} else {
+				m.Control.Muxed = true
 			}
 		case "fmtp":
 			err = dec.decodeMediaParams(m, it.Value)
+		case "fingerprint":
+			err = dec.decodeFingerprint(m, it.Value)
 		default:
 			m.Attributes[n] = it
 			n++
@@ -182,6 +195,17 @@ func (dec *Decoder) decodeMediaParams(m *Media, v string) error {
 	}
 	f := dec.touchMediaFormat(m, p)
 	f.Params = append(f.Params, dec.p[1])
+	return nil
+}
+
+func (dec *Decoder) decodeFingerprint(m *Media, v string) error {
+	if !dec.split(v, ' ', 2, true) {
+		return dec.err
+	}
+	m.Fingerprints = append(m.Fingerprints, Fingerprint{
+		HashFunc:    dec.p[0],
+		Fingerprint: dec.p[1],
+	})
 	return nil
 }
 
