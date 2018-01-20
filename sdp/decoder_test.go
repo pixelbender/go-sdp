@@ -146,3 +146,24 @@ a=rtpmap:126 telephone-event/8000`)
 		t.Fail()
 	}
 }
+
+func TestMsidSemantics(t *testing.T) {
+	t.Parallel()
+	desc, err := Parse(`v=0
+a=msid-semantic: WMS`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if desc.MsidSemantic.Semantics != "WMS" {
+		t.Fail()
+	}
+
+	desc, err = Parse(`v=0
+a=msid-semantic: WMS foo bar`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if desc.MsidSemantic.Identifiers[0] != "foo" || desc.MsidSemantic.Identifiers[1] != "bar" {
+		t.Fail()
+	}
+}

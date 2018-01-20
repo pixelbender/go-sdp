@@ -27,23 +27,24 @@ const (
 
 // Description represents an SDP session description. RFC 4566 Section 5.
 type Description struct {
-	Version     int            // Protocol Version ("v=")
-	Origin      *Origin        // Origin ("o=")
-	Session     string         // Session Name ("s=")
-	Information string         // Session Information ("i=")
-	URI         string         // URI ("u=")
-	Email       []string       // Email Address ("e=")
-	Phone       []string       // Phone Number ("p=")
-	Connection  *Connection    // Connection Data ("c=")
-	Bandwidth   map[string]int // Bandwidth ("b=")
-	Timing      *Timing        // Timing ("t=")
-	TimeZones   []*TimeZone    // TimeZone ("t=")
-	Key         *Key           // Encryption Keys ("k=")
-	Attributes  Attributes     // Attributes ("a=")
-	Groups      []*Group       // Grouping ("a=group:")
-	Media       []*Media       // Media Descriptions ("m=")
-	Mode        string         // Media direction attribute
-	Setup       string         // Setup attribute ("a=setup:")
+	Version      int            // Protocol Version ("v=")
+	Origin       *Origin        // Origin ("o=")
+	Session      string         // Session Name ("s=")
+	Information  string         // Session Information ("i=")
+	URI          string         // URI ("u=")
+	Email        []string       // Email Address ("e=")
+	Phone        []string       // Phone Number ("p=")
+	Connection   *Connection    // Connection Data ("c=")
+	Bandwidth    map[string]int // Bandwidth ("b=")
+	Timing       *Timing        // Timing ("t=")
+	TimeZones    []*TimeZone    // TimeZone ("t=")
+	Key          *Key           // Encryption Keys ("k=")
+	Attributes   Attributes     // Attributes ("a=")
+	Groups       []*Group       // Grouping ("a=group:")
+	Media        []*Media       // Media Descriptions ("m=")
+	Mode         string         // Media direction attribute
+	Setup        string         // Setup attribute ("a=setup:")
+	MsidSemantic *MsidSemantic  // Msid semantics ("a=msid-semantic:")
 }
 
 // Attributes represent a list of SDP attributes
@@ -111,6 +112,12 @@ type Media struct {
 	Mode        string         // Media direction attribute
 	Control     *Control       // RTCP description
 	Setup       string         // Setup attribute ("a=setup:")
+}
+
+// MsidSemantic is semantics acording to https://tools.ietf.org/html/draft-ietf-mmusic-msid-06
+type MsidSemantic struct {
+	Semantics   string // usually "WMS"
+	Identifiers []string
 }
 
 // Format is a media format description represented by "rtpmap", "fmtp" SDP attributes.

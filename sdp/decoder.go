@@ -75,6 +75,15 @@ func (dec *Decoder) decodeSessionAttributes(desc *Description) error {
 			})
 		case "setup":
 			desc.Setup = it.Value
+		case "msid-semantic":
+			dec.split(it.Value, ' ', 255, false)
+			if dec.p[0] == "" {
+				dec.p = dec.p[1:]
+			}
+			desc.MsidSemantic = &MsidSemantic{
+				Semantics:   dec.p[0],
+				Identifiers: dec.p[1:],
+			}
 		default:
 			desc.Attributes[n] = it
 			n++

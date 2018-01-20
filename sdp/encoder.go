@@ -162,6 +162,15 @@ func (enc *Encoder) Encode(desc *Description) {
 			enc.string(it)
 		}
 	}
+	if m := desc.MsidSemantic; m != nil {
+		enc.line('a')
+		enc.string("msid-semantic: ")
+		enc.string(m.Semantics)
+		for _, it := range m.Identifiers {
+			enc.char(' ')
+			enc.string(it)
+		}
+	}
 	for _, it := range desc.Attributes {
 		enc.encodeAttr(it.Name, it.Value)
 	}
