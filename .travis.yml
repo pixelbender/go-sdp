@@ -1,13 +1,12 @@
 language: go
-sudo: false
 go:
   - tip
 before_install:
-  - go get github.com/mattn/goveralls
   - go get golang.org/x/tools/cmd/cover
-  - go get github.com/golang/lint/golint
+  - go get golang.org/x/lint/golint
+  - go get github.com/mattn/goveralls
 script:
-  - go test -v -coverprofile=sdp.coverprofile ./sdp
-  - 'echo "mode: set" > .coverage && grep -h -v "mode: set" *.coverprofile >> .coverage'
-  - $HOME/gopath/bin/goveralls -coverprofile=.coverage -service=travis-ci
+  - go test -v -coverprofile=.coverprofile ./sdp
+  - go test -bench=. ./sdp
+  - $HOME/gopath/bin/goveralls -coverprofile=.coverprofile -service=travis-ci
   - $HOME/gopath/bin/golint ./...

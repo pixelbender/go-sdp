@@ -1,6 +1,5 @@
+bin
+pkg
+.idea
 .DS_Store
-
-bin/
-pkg/
-
 .coverprofile
