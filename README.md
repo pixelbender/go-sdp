@@ -87,7 +87,7 @@ func main() {
 ```
 
 ## Attributes mapping
-| Scope | Attribute | Struct, Property |
+| Scope | Attribute | Struct / Property |
 | ----- | --------- | ----------------- |
 | session, media | sendrecv, recvonly, sendonly, inactive | Session.Mode, Media.Mode |
 | media | rtpmap | Format |
