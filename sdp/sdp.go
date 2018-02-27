@@ -7,78 +7,38 @@ import (
 // MediaType is the media type for an SDP session description.
 const MediaType = "application/sdp"
 
-// Attribute values for indication of a media stream direction.
-// See RFC 4566 Section 6.
-const (
-	ModeSendRecv = "sendrecv"
-	ModeRecvOnly = "recvonly"
-	ModeSendOnly = "sendonly"
-	ModeInactive = "inactive"
-)
+// SessionDescription represents an SDP session description.
+type SessionDescription struct {
+	Version     int         // Protocol Version ("v=")
+	Origin      *Origin     // Origin ("o=")
+	Name        string      // Session Name ("s=")
+	Information string      // Session Information ("i=")
+	URI         string      // URI ("u=")
+	Email       []string    // Email Address ("e=")
+	Phone       []string    // Phone Number ("p=")
+	Connection  *Connection // Connection Data ("c=")
+	Bandwidth   Bandwidth   // Bandwidth ("b=")
+	TimeZone    []*TimeZone // TimeZone ("z=")
+	Key         []*Key      // Encryption Keys ("k=")
+	Attributes              // Session Attributes ("a=")
+	Timing      *Timing     // Timing ("t=")
+	Repeat      []*Repeat   // Repeat Times ("r=")
+	Media       []*Media    // Media Descriptions ("m=")
 
-// Connection mode values for an SDP "setup" attribute.
-// See RFC 4145 Section 4.
-const (
-	SetupActive  = "active"
-	SetupPassive = "passive"
-	SetupActPass = "actpass"
-	SetupHold    = "holdconn"
-)
-
-// Description represents an SDP session description. RFC 4566 Section 5.
-type Description struct {
-	Version     int            // Protocol Version ("v=")
-	Origin      *Origin        // Origin ("o=")
-	Session     string         // Session Name ("s=")
-	Information string         // Session Information ("i=")
-	URI         string         // URI ("u=")
-	Email       []string       // Email Address ("e=")
-	Phone       []string       // Phone Number ("p=")
-	Connection  *Connection    // Connection Data ("c=")
-	Bandwidth   map[string]int // Bandwidth ("b=")
-	Timing      *Timing        // Timing ("t=")
-	TimeZones   []*TimeZone    // TimeZone ("t=")
-	Key         *Key           // Encryption Keys ("k=")
-	Attributes  Attributes     // Attributes ("a=")
-	Groups      []*Group       // Grouping ("a=group:")
-	Media       []*Media       // Media Descriptions ("m=")
-	Mode        string         // Media direction attribute
-	Setup       string         // Setup attribute ("a=setup:")
+	Mode string
 }
 
-// Attributes represent a list of SDP attributes
-type Attributes []*Attr
-
-// Get returns first attribute value by name n
-func (a Attributes) Get(n string) string {
-	for _, it := range a {
-		if it.Name == n {
-			return it.Value
-		}
-	}
-	return ""
+// String returns the encoded session description as string.
+func (s *SessionDescription) String() string {
+	return string(s.Bytes())
 }
 
-// Bandwidth types for a bandwidth attribute.
-const (
-	BandwidthConferenceTotal     = "CT"
-	BandwidthApplicationSpecific = "AS"
-)
-
-// String returns the encoded session description according the SDP specification.
-func (desc *Description) String() string {
-	enc := NewEncoder()
-	enc.Encode(desc)
-	return enc.String()
+// Bytes returns the encoded session description as buffer.
+func (s *SessionDescription) Bytes() []byte {
+	return new(Encoder).session(s).Bytes()
 }
 
-// Parse parses text into a Description structure.
-func Parse(text string) (*Description, error) {
-	dec := NewDecoderString(text)
-	return dec.Decode()
-}
-
-// Origin represents an originator of the session. RFC 4566 Section 5.2.
+// Origin represents an originator of the session.
 type Origin struct {
 	Username       string
 	SessionID      int64
@@ -88,69 +48,7 @@ type Origin struct {
 	Address        string
 }
 
-// Group represents a grouping attributes of SDP Grouping Framework.
-// See RFC 5888.
-type Group struct {
-	Semantics string
-	Media     []string
-}
-
-// Media contains media description. RFC 4566 Section 5.14.
-type Media struct {
-	ID          string // Media identification for the SDP grouping framework
-	Type        string
-	Port        int
-	PortNum     int
-	Proto       string
-	Formats     map[int]*Format
-	Information string         // Media Information ("i=")
-	Connection  *Connection    // Connection Data ("c=")
-	Bandwidth   map[string]int // Bandwidth ("b=")
-	Key         *Key           // Encryption Keys ("k=")
-	Attributes  Attributes     // Attributes ("a=")
-	Mode        string         // Media direction attribute
-	Control     *Control       // RTCP description
-	Setup       string         // Setup attribute ("a=setup:")
-}
-
-// Format is a media format description represented by "rtpmap", "fmtp" SDP attributes.
-type Format struct {
-	Payload  int
-	Codec    string
-	Clock    int
-	Channels int
-	Feedback []string
-	Params   []string
-}
-
-// Control contains description of an RTCP endpoint.
-type Control struct {
-	Muxed   bool
-	Network string
-	Type    string
-	Address string
-	Port    int
-}
-
-// Key contains a key exchange information.
-// It's use is not recommended, supported for compatibility with older implementations.
-type Key struct {
-	Type, Value string
-}
-
-// Attr represents an a session or media attribute. RFC 4566 Section 5.14.
-type Attr struct {
-	Name, Value string
-}
-
-func (a *Attr) String() string {
-	if a.Value == "" {
-		return a.Name
-	}
-	return a.Name + ":" + a.Value
-}
-
-// Connection contains connection data. RFC 4566 Section 5.7.
+// Connection contains connection data.
 type Connection struct {
 	Network    string
 	Type       string
@@ -159,11 +57,25 @@ type Connection struct {
 	AddressNum int
 }
 
+// Bandwidth contains session or media bandwidth information.
+type Bandwidth map[string]int
+
+// TimeZone represents a time zones change information for a repeated session.
+type TimeZone struct {
+	Time   time.Time
+	Offset time.Duration
+}
+
+// Key contains a key exchange information.
+// Deprecated: Not recommended, supported for compatibility with older implementations.
+type Key struct {
+	Method, Value string
+}
+
 // Timing specifies start and stop times for a session.
 type Timing struct {
-	Start  time.Time
-	Stop   time.Time
-	Repeat *Repeat // Repeat Times ("r=")
+	Start time.Time
+	Stop  time.Time
 }
 
 // Repeat specifies repeat times for a session.
@@ -173,8 +85,41 @@ type Repeat struct {
 	Offsets  []time.Duration
 }
 
-// TimeZone represents a time zones change information for a repeated session.
-type TimeZone struct {
-	Time   time.Time
-	Offset time.Duration
+// Media contains media description.
+type Media struct {
+	Type    string
+	Port    int
+	PortNum int
+	Proto   string
+
+	Information string        // Media Information ("i=")
+	Connection  []*Connection // Connection Data ("c=")
+	Bandwidth   Bandwidth     // Bandwidth ("b=")
+	Key         []*Key        // Encryption Keys ("k=")
+	Attributes                // Attributes ("a=")
+
+	Mode    string
+	Formats []*Format
 }
+
+// Format returns format description by payload type.
+func (m *Media) Format(pt int) *Format {
+	for _, f := range m.Formats {
+		if f.Payload == pt {
+			return f
+		}
+	}
+	return nil
+}
+
+// Format is a media format description represented by "rtpmap", "fmtp" attributes.
+type Format struct {
+	Payload   int
+	Name      string
+	ClockRate int
+	Channels  int
+	Feedback  []string
+	Params    []string
+}
+
+var epoch = time.Date(1900, time.January, 1, 0, 0, 0, 0, time.UTC)

@@ -10,8 +10,6 @@ Go implementation of SDP (Session Description Protocol)
 ## Features
 
 - [x] SDP Encoder/Decoder
-- [ ] SDP Answer/Offer Negotiation
-- [ ] SDP Media Capabilities Negotiation
 
 ## Installation
 
@@ -43,7 +41,7 @@ a=rtpmap:8 PCMA/8000`)
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		fmt.Println(desc.Media[0].Formats[0].Codec)
+		fmt.Println(desc.Media[0].Formats[0].Name) // prints PCMU
 	}
 }
 ```
@@ -59,41 +57,33 @@ import (
 )
 
 func main() {
-	desc := &sdp.Description{
+	sess := &sdp.SessionDescription{
     		Origin: &sdp.Origin{
-    		    Username: "alice",
-    		    Address: "alice.example.org",
-    		    SessionID: 2890844526,
-    		    SessionVersion: 2890844526,
+    			Username:       "alice",
+    			Address:        "alice.example.org",
+    			SessionID:      2890844526,
+    			SessionVersion: 2890844526,
     		},
-    		Session: "Example",
-    		Connection: &sdp.Connection{ Address: "127.0.0.1" },
+    		Name:       "Example",
+    		Connection: &sdp.Connection{Address: "127.0.0.1"},
     		Media: []*sdp.Media{
     			{
-    				Type: "audio",
-    				Port: 10000,
+    				Type:  "audio",
+    				Port:  10000,
     				Proto: "RTP/AVP",
-    				Formats: map[int]*sdp.Format{
-    					0: { Payload: 0, Codec: "PCMU", Clock: 8000 },
-    					8: { Payload: 8, Codec: "PCMA", Clock: 8000 },
+    				Formats: []*sdp.Format{
+    					{Payload: 0, Name: "PCMU", ClockRate: 8000},
+    					{Payload: 8, Name: "PCMA", ClockRate: 8000},
     				},
     			},
     		},
     		Mode: sdp.ModeSendRecv,
     	}
-
-	fmt.Println(desc.String())
+    	
+	fmt.Println(sess.String())
 }
 ```
 
 ## Specifications
 
 - [RFC 5389: Session Description Protocol](https://tools.ietf.org/html/rfc4566)
-- [RFC 3264: Offer/Answer Model with SDP](https://tools.ietf.org/html/rfc3264)
-- [RFC 5939: SDP Capability Negotiation](https://tools.ietf.org/html/rfc5939)
-- [RFC 6871: SDP Media Capabilities Negotiation](https://tools.ietf.org/html/rfc6871)
-- [RFC 5761: Multiplexing RTP Data and Control Packets on a Single Port](https://tools.ietf.org/html/rfc5761)
-- [RFC 5888: SDP Grouping Framework](https://tools.ietf.org/html/rfc5888)
-- [RFC 4145: TCP-Based Media Transport in SDP](https://tools.ietf.org/html/rfc4145)
-- [RFC 4572: Connection-Oriented Media Transport over TLS in SDP](https://tools.ietf.org/html/rfc4572)
-- [Draft: Using the SDP Offer/Answer Mechanism for DTLS](https://tools.ietf.org/html/draft-ietf-mmusic-dtls-sdp-14)

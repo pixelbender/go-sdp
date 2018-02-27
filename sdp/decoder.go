@@ -2,527 +2,470 @@ package sdp
 
 import (
 	"bufio"
+	"errors"
+	"fmt"
 	"io"
 	"strconv"
 	"time"
 )
 
-type reader interface {
-	ReadLine() (string, error)
+// Parse reads session description from the buffer.
+func Parse(b []byte) (*SessionDescription, error) {
+	return ParseString(string(b))
 }
 
-// A Decoder reads and decodes SDP description from an input stream or buffer.
+// ParseString reads session description from the string.
+func ParseString(s string) (*SessionDescription, error) {
+	return NewDecoderString(s).Decode()
+}
+
+// A Decoder reads a session description from a stream.
 type Decoder struct {
-	r   reader
-	p   []string
-	err error
+	r lineReader
+	p []string
 }
 
-// NewDecoder returns a new decoder that reads from r.
+// NewDecoder returns new decoder that reads from r.
 func NewDecoder(r io.Reader) *Decoder {
-	return &Decoder{r: &bufferedReader{buf: bufio.NewReader(r)}}
+	return &Decoder{r: &reader{b: bufio.NewReaderSize(r, maxLineSize)}}
 }
 
-// NewDecoderString returns a new decoder that reads from v.
-func NewDecoderString(v string) *Decoder {
-	return &Decoder{r: &stringReader{buf: v}}
+// NewDecoderString returns new decoder that reads from s.
+func NewDecoderString(s string) *Decoder {
+	return &Decoder{r: &stringReader{s: s}}
 }
 
-// Decode reads and decodes a SDP description from its input.
-func (dec *Decoder) Decode() (*Description, error) {
-	desc := &Description{}
+// Decode encodes the session description.
+func (d *Decoder) Decode() (*SessionDescription, error) {
+	line := 0
+	sess := new(SessionDescription)
+	var media *Media
+
 	for {
-		v, err := dec.r.ReadLine()
+		line++
+		s, err := d.r.ReadLine()
 		if err != nil {
-			if err == io.EOF {
+			if err == io.EOF && line > 1 {
 				break
 			}
 			return nil, err
 		}
-		if !dec.split(v, '=', 2, true) {
-			return nil, dec.err
+		if len(s) < 2 || s[1] != '=' {
+			return nil, &errDecode{errFormat, line, s}
 		}
-		k := dec.p[0]
-		if len(k) != 1 {
-			return nil, decodeError(v)
-		}
-		if err = dec.decodeLine(desc, k[0], dec.p[1]); err != nil {
-			return nil, err
-		}
-	}
-	if err := dec.decodeSessionAttributes(desc); err != nil {
-		return nil, err
-	}
-	for _, m := range desc.Media {
-		if err := dec.decodeMediaAttributes(m); err != nil {
-			return nil, err
-		}
-	}
-	return desc, nil
-}
-
-func (dec *Decoder) decodeSessionAttributes(desc *Description) error {
-	n := 0
-	for _, it := range desc.Attributes {
-		switch it.Name {
-		case ModeSendRecv, ModeRecvOnly, ModeSendOnly, ModeInactive:
-			desc.Mode = it.Name
-		case "group":
-			dec.split(it.Value, ' ', 255, false)
-			desc.Groups = append(desc.Groups, &Group{
-				Semantics: dec.p[0],
-				Media:     dec.p[1:],
-			})
-		case "setup":
-			desc.Setup = it.Value
-		default:
-			desc.Attributes[n] = it
-			n++
-		}
-	}
-	desc.Attributes = desc.Attributes[:n]
-	return nil
-}
-
-func (dec *Decoder) decodeMediaAttributes(m *Media) (err error) {
-	n := 0
-	for _, it := range m.Attributes {
-		switch it.Name {
-		case ModeSendRecv, ModeRecvOnly, ModeSendOnly, ModeInactive:
-			m.Mode = it.Name
-		case "mid":
-			m.ID = it.Value
-		case "setup":
-			m.Setup = it.Value
-		case "rtpmap":
-			err = dec.decodeMediaMap(m, it.Value)
-		case "rtcp":
-			err = dec.decodeControl(m, it.Value)
-		case "rtcp-fb":
-			err = dec.decodeControlFeedback(m, it.Value)
-		case "rtcp-mux":
-			if m.Control == nil {
-				m.Control = &Control{Muxed: true}
+		f, v := s[0], s[2:]
+		if f == 'm' {
+			media = new(Media)
+			err = d.media(media, f, v)
+			if err == nil {
+				sess.Media = append(sess.Media, media)
 			}
-		case "fmtp":
-			err = dec.decodeMediaParams(m, it.Value)
-		default:
-			m.Attributes[n] = it
-			n++
+		} else if media == nil {
+			err = d.session(sess, f, v)
+		} else {
+			err = d.media(media, f, v)
 		}
+		if err != nil {
+			return nil, &errDecode{err, line, s}
+		}
+	}
+	return sess, nil
+}
+
+func (d *Decoder) session(s *SessionDescription, f byte, v string) error {
+	var err error
+	switch f {
+	case 'v':
+		s.Version, err = strconv.Atoi(v)
+	case 'o':
+		if s.Origin != nil {
+			return errUnexpectedField
+		}
+		s.Origin, err = d.origin(v)
+	case 's':
+		s.Name = v
+	case 'i':
+		s.Information = v
+	case 'u':
+		s.URI = v
+	case 'e':
+		s.Email = append(s.Email, v)
+	case 'p':
+		s.Phone = append(s.Phone, v)
+	case 'c':
+		if s.Connection != nil {
+			return errUnexpectedField
+		}
+		s.Connection, err = d.connection(v)
+	case 'b':
+		if s.Bandwidth == nil {
+			s.Bandwidth = make(Bandwidth)
+		}
+		err = d.bandwidth(s.Bandwidth, v)
+	case 'z':
+		s.TimeZone, err = d.timezone(v)
+	case 'k':
+		s.Key = append(s.Key, d.key(v))
+	case 'a':
+		a := d.attr(v)
+		switch a.Name {
+		case ModeInactive, ModeRecvOnly, ModeSendOnly, ModeSendRecv:
+			s.Mode = a.Name
+		default:
+			s.Attributes = append(s.Attributes, a)
+		}
+	case 't':
+		s.Timing, err = d.timing(v)
+	case 'r':
+		r, err := d.repeat(v)
 		if err != nil {
 			return err
 		}
+		s.Repeat = append(s.Repeat, r)
+	default:
+		return errUnexpectedField
 	}
-	m.Attributes = m.Attributes[:n]
-	return nil
+	return err
 }
 
-func (dec *Decoder) decodeControl(m *Media, v string) (err error) {
-	if m.Control == nil {
-		m.Control = &Control{}
+func (d *Decoder) media(m *Media, f byte, v string) error {
+	var err error
+	switch f {
+	case 'm':
+		err = d.proto(m, v)
+	case 'i':
+		m.Information = v
+	case 'c':
+		conn, err := d.connection(v)
+		if err != nil {
+			return err
+		}
+		m.Connection = append(m.Connection, conn)
+	case 'b':
+		if m.Bandwidth == nil {
+			m.Bandwidth = make(Bandwidth)
+		}
+		err = d.bandwidth(m.Bandwidth, v)
+	case 'k':
+		m.Key = append(m.Key, d.key(v))
+	case 'a':
+		a := d.attr(v)
+		switch a.Name {
+		case "rtpmap", "rtcp-fb", "fmtp":
+			err = d.format(m, a)
+		default:
+			m.Attributes = append(m.Attributes, a)
+		}
+	default:
+		return errUnexpectedField
 	}
-	if !dec.split(v, ' ', 4, true) {
-		return dec.err
-	}
-	c := m.Control
-	if c.Port, err = strconv.Atoi(dec.p[0]); err != nil {
-		return
-	}
-	c.Network = dec.p[1]
-	c.Type = dec.p[2]
-	c.Address = dec.p[3]
-	return nil
+	return err
 }
 
-func (dec *Decoder) decodeControlFeedback(m *Media, v string) (err error) {
-	if !dec.split(v, ' ', 2, true) {
-		return dec.err
+func (d *Decoder) format(m *Media, a *Attr) error {
+	p, ok := d.fields(a.Value, 2)
+	if !ok {
+		return errFormat
 	}
-	p, err := strconv.Atoi(dec.p[0])
+	pt, err := strconv.Atoi(p[0])
 	if err != nil {
 		return err
 	}
-	f := dec.touchMediaFormat(m, p)
-	f.Feedback = append(f.Feedback, dec.p[1])
-	return nil
+	f, v := m.Format(pt), p[1]
+	if f == nil {
+		return nil
+	}
+	switch a.Name {
+	case "rtpmap":
+		err = d.rtpmap(f, v)
+	case "rtcp-fb":
+		f.Feedback = append(f.Feedback, v)
+	case "fmtp":
+		f.Params = append(f.Params, v)
+	}
+	return err
 }
 
-func (dec *Decoder) decodeMediaMap(m *Media, v string) error {
-	if !dec.split(v, ' ', 2, true) {
-		return dec.err
+func (d *Decoder) rtpmap(f *Format, v string) error {
+	p, ok := d.split(v, '/', 3)
+	if len(p) < 2 {
+		return errFormat
 	}
-	p, err := strconv.Atoi(dec.p[0])
-	if err != nil {
-		return err
-	}
-	if !dec.split(dec.p[1], '/', 2, true) {
-		return dec.err
-	}
-	f := dec.touchMediaFormat(m, p)
-	f.Codec = dec.p[0]
-	if dec.split(dec.p[1], '/', 2, false) {
-		if f.Channels, err = strconv.Atoi(dec.p[1]); err != nil {
+	f.Name = p[0]
+	var err error
+	if ok {
+		if f.Channels, err = strconv.Atoi(p[2]); err != nil {
 			return err
 		}
 	}
-	if f.Clock, err = strconv.Atoi(dec.p[0]); err != nil {
+	if f.ClockRate, err = strconv.Atoi(p[1]); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (dec *Decoder) decodeMediaParams(m *Media, v string) error {
-	if !dec.split(v, ' ', 2, true) {
-		return dec.err
+func (d *Decoder) proto(m *Media, v string) error {
+	p, ok := d.fields(v, 4)
+	if !ok {
+		return errFormat
 	}
-	p, err := strconv.Atoi(dec.p[0])
+	formats := p[3]
+	m.Type, m.Proto = p[0], p[2]
+	p, ok = d.split(p[1], '/', 2)
+	var err error
+	if ok {
+		if m.PortNum, err = strconv.Atoi(p[1]); err != nil {
+			return err
+		}
+	}
+	if m.Port, err = strconv.Atoi(p[0]); err != nil {
+		return err
+	}
+	p, _ = d.fields(formats, maxLineSize)
+	for _, it := range p {
+		pt, err := strconv.Atoi(it)
+		if err != nil {
+			return err
+		}
+		m.Formats = append(m.Formats, &Format{Payload: pt})
+	}
+	return nil
+}
+
+func (d *Decoder) origin(v string) (*Origin, error) {
+	p, ok := d.fields(v, 6)
+	if !ok {
+		return nil, errFormat
+	}
+	o := new(Origin)
+	o.Username, o.Network, o.Type, o.Address = p[0], p[3], p[4], p[5]
+	var err error
+	if o.SessionID, err = d.int(p[1]); err != nil {
+		return nil, err
+	}
+	if o.SessionVersion, err = d.int(p[2]); err != nil {
+		return nil, err
+	}
+	return o, nil
+}
+
+func (d *Decoder) connection(v string) (*Connection, error) {
+	p, ok := d.fields(v, 3)
+	if !ok {
+		return nil, errFormat
+	}
+	c := new(Connection)
+	c.Network, c.Type, c.Address = p[0], p[1], p[2]
+	p, ok = d.split(c.Address, '/', 3)
+	if ok {
+		ttl, err := d.int(p[1])
+		if err != nil {
+			return nil, err
+		}
+		c.TTL = int(ttl)
+		p = p[1:]
+	}
+	if len(p) > 1 {
+		num, err := d.int(p[1])
+		if err != nil {
+			return nil, err
+		}
+		c.Address, c.AddressNum = p[0], int(num)
+	}
+	return c, nil
+}
+
+func (d *Decoder) bandwidth(b Bandwidth, v string) error {
+	p, ok := d.split(v, ':', 2)
+	if !ok {
+		return errFormat
+	}
+	val, err := d.int(p[1])
 	if err != nil {
 		return err
 	}
-	f := dec.touchMediaFormat(m, p)
-	f.Params = append(f.Params, dec.p[1])
+	b[p[0]] = int(val)
 	return nil
 }
 
-func (dec *Decoder) touchMediaFormat(m *Media, p int) *Format {
-	if m.Formats == nil {
-		m.Formats = make(map[int]*Format)
+func (d *Decoder) timezone(v string) ([]*TimeZone, error) {
+	p, _ := d.fields(v, 40)
+	zone := make([]*TimeZone, 0, 1)
+	var err error
+	for len(p) > 1 {
+		it := new(TimeZone)
+		if it.Time, err = d.time(p[0]); err != nil {
+			return nil, err
+		}
+		if it.Offset, err = d.duration(p[1]); err != nil {
+			return nil, err
+		}
+		zone = append(zone, it)
+		p = p[2:]
 	}
-	f, ok := m.Formats[p]
+	return zone, nil
+}
+
+func (d *Decoder) key(v string) *Key {
+	if p, ok := d.split(v, ':', 2); ok {
+		return &Key{p[0], p[1]}
+	}
+	return &Key{v, ""}
+}
+
+func (d *Decoder) attr(v string) *Attr {
+	if p, ok := d.split(v, ':', 2); ok {
+		return &Attr{p[0], p[1]}
+	}
+	return &Attr{v, ""}
+}
+
+func (d *Decoder) timing(v string) (*Timing, error) {
+	p, ok := d.fields(v, 2)
 	if !ok {
-		f = &Format{Payload: p}
-		m.Formats[p] = f
+		return nil, errFormat
 	}
-	return f
+	start, err := d.time(p[0])
+	if err != nil {
+		return nil, err
+	}
+	stop, err := d.time(p[1])
+	if err != nil {
+		return nil, err
+	}
+	return &Timing{start, stop}, nil
 }
 
-func (dec *Decoder) split(v string, sep rune, n int, required bool) bool {
-	p := make([]string, 0, 1)
-	off := 0
-	for i, it := range v {
-		if it == sep {
-			p = append(p, v[off:i])
-			off = i + 1
+func (d *Decoder) repeat(v string) (*Repeat, error) {
+	p, _ := d.fields(v, maxLineSize)
+	if len(p) < 2 {
+		return nil, errFormat
+	}
+	r := new(Repeat)
+	var err error
+	if r.Interval, err = d.duration(p[0]); err != nil {
+		return nil, err
+	}
+	if r.Duration, err = d.duration(p[1]); err != nil {
+		return nil, err
+	}
+	for _, it := range p[2:] {
+		off, err := d.duration(it)
+		if err != nil {
+			return nil, err
 		}
-		if len(p)+1 == n {
-			dec.p = append(p, v[off:])
-			return true
-		}
+		r.Offsets = append(r.Offsets, off)
 	}
-	if required {
-		dec.err = decodeError(v)
-	} else {
-		dec.p = append(p, v[off:])
-	}
-	return false
+	return r, nil
 }
 
-func (dec *Decoder) parseInt(v string) (int64, error) {
-	return strconv.ParseInt(v, 10, 64)
+func (d *Decoder) time(v string) (time.Time, error) {
+	sec, err := d.int(v)
+	if err != nil || sec == 0 {
+		return time.Time{}, err
+	}
+	return epoch.Add(time.Second * time.Duration(sec)), nil
 }
 
-func (dec *Decoder) parseTime(v string) (t time.Time, err error) {
-	if v == "0" {
-		return
-	}
-	var ts int64
-	if ts, err = dec.parseInt(v); err != nil {
-		return
-	}
-	t = ntpEpoch.Add(time.Second * time.Duration(ts))
-	return
-}
-
-func (dec *Decoder) parseDuration(v string) (d time.Duration, err error) {
-	mul := int64(1)
+func (d *Decoder) duration(v string) (time.Duration, error) {
+	m := int64(1)
 	if n := len(v) - 1; n >= 0 {
 		switch v[n] {
 		case 'd':
-			mul, v = 86400, v[:n]
+			m, v = 86400, v[:n]
 		case 'h':
-			mul, v = 3600, v[:n]
+			m, v = 3600, v[:n]
 		case 'm':
-			mul, v = 60, v[:n]
+			m, v = 60, v[:n]
 		case 's':
 			v = v[:n]
 		}
 	}
-	var sec int64
-	if sec, err = dec.parseInt(v); err != nil {
-		return
+	sec, err := d.int(v)
+	if err != nil {
+		return 0, err
 	}
-	d = time.Duration(sec*mul) * time.Second
-	return
+	return time.Duration(sec*m) * time.Second, nil
 }
 
-func (dec *Decoder) decodeLine(desc *Description, k byte, v string) (err error) {
-	if n := len(desc.Media); n > 0 && k != 'm' {
-		return dec.decodeMediaDesc(desc.Media[n-1], k, v)
-	}
-	return dec.decodeSessionDesc(desc, k, v)
+func (d *Decoder) int(v string) (int64, error) {
+	return strconv.ParseInt(v, 10, 64)
 }
 
-func (dec *Decoder) decodeSessionDesc(desc *Description, k byte, v string) (err error) {
-	switch k {
-	case 'v':
-		desc.Version, err = strconv.Atoi(v)
-	case 'o':
-		desc.Origin, err = dec.decodeOrigin(v)
-	case 's':
-		desc.Session = v
-	case 'i':
-		desc.Information = v
-	case 'u':
-		desc.URI = v
-	case 'e':
-		desc.Email = append(desc.Email, v)
-	case 'p':
-		desc.Phone = append(desc.Phone, v)
-	case 'c':
-		desc.Connection, err = dec.decodeConn(v)
-	case 'b':
-		if desc.Bandwidth == nil {
-			desc.Bandwidth = make(map[string]int)
-		}
-		err = dec.decodeBandwidth(desc.Bandwidth, v)
-	case 't':
-		desc.Timing, err = dec.decodeTiming(v)
-	case 'r':
-		if desc.Timing != nil {
-			desc.Timing.Repeat, err = dec.decodeRepeats(v)
-		}
-	case 'z':
-		err = dec.decodeTimezones(desc, v)
-	case 'k':
-		desc.Key, err = dec.decodeKey(v)
-	case 'a':
-		var attr *Attr
-		if attr, err = dec.decodeAttr(v); err == nil {
-			desc.Attributes = append(desc.Attributes, attr)
-		}
-	case 'm':
-		var m *Media
-		if m, err = dec.decodeMedia(v); err == nil {
-			desc.Media = append(desc.Media, m)
-		}
-	default:
-		err = decodeError(k)
-	}
-	return
+func (d *Decoder) fields(s string, n int) ([]string, bool) {
+	return d.split(s, ' ', n)
 }
 
-func (dec *Decoder) decodeMediaDesc(m *Media, k byte, v string) (err error) {
-	switch k {
-	case 'i':
-		m.Information = v
-	case 'c':
-		m.Connection, err = dec.decodeConn(v)
-	case 'b':
-		if m.Bandwidth == nil {
-			m.Bandwidth = make(map[string]int)
+func (d *Decoder) split(s string, sep rune, n int) ([]string, bool) {
+	p, pos := d.p[:0], 0
+	for i, c := range s {
+		if c != sep {
+			continue
 		}
-		err = dec.decodeBandwidth(m.Bandwidth, v)
-	case 'k':
-		m.Key, err = dec.decodeKey(v)
-	case 'a':
-		var attr *Attr
-		if attr, err = dec.decodeAttr(v); err == nil {
-			m.Attributes = append(m.Attributes, attr)
-		}
-	default:
-		err = decodeError(k)
-	}
-	return
-}
-
-func (dec *Decoder) decodeAttr(v string) (*Attr, error) {
-	if dec.split(v, ':', 2, false) {
-		return &Attr{Name: dec.p[0], Value: dec.p[1]}, nil
-	}
-	return &Attr{Name: dec.p[0]}, nil
-}
-
-func (dec *Decoder) decodeKey(v string) (*Key, error) {
-	if dec.split(v, ':', 2, false) {
-		return &Key{Type: dec.p[0], Value: dec.p[1]}, nil
-	}
-	return &Key{Type: dec.p[0]}, nil
-}
-
-func (dec *Decoder) decodeOrigin(v string) (o *Origin, err error) {
-	if !dec.split(v, ' ', 6, true) {
-		return nil, dec.err
-	}
-	o = &Origin{
-		Username: dec.p[0],
-		Network:  dec.p[3],
-		Type:     dec.p[4],
-		Address:  dec.p[5],
-	}
-	if o.SessionID, err = dec.parseInt(dec.p[1]); err != nil {
-		return nil, err
-	}
-	if o.SessionVersion, err = dec.parseInt(dec.p[2]); err != nil {
-		return nil, err
-	}
-	return
-}
-
-func (dec *Decoder) decodeConn(v string) (c *Connection, err error) {
-	if !dec.split(v, ' ', 3, true) {
-		return nil, dec.err
-	}
-	c = &Connection{
-		Network: dec.p[0],
-		Type:    dec.p[1],
-	}
-	dec.split(dec.p[2], '/', 3, false)
-	c.Address = dec.p[0]
-	if len(dec.p) > 1 {
-		if c.TTL, err = strconv.Atoi(dec.p[1]); err != nil {
-			return
-		}
-		if len(dec.p) > 2 {
-			c.AddressNum, err = strconv.Atoi(dec.p[2])
+		p = append(p, s[pos:i])
+		pos = i + 1
+		if len(p) >= n-1 {
+			break
 		}
 	}
-	return
+	p = append(p, s[pos:])
+	d.p = p[:0]
+	return p, len(p) == n
 }
 
-func (dec *Decoder) decodeBandwidth(b map[string]int, v string) (err error) {
-	if !dec.split(v, ':', 2, true) {
-		return dec.err
-	}
-	b[dec.p[0]], err = strconv.Atoi(dec.p[1])
-	return
+const maxLineSize = 1024
+
+type lineReader interface {
+	ReadLine() (string, error)
 }
 
-func (dec *Decoder) decodeTiming(v string) (t *Timing, err error) {
-	if !dec.split(v, ' ', 2, true) {
-		return nil, dec.err
-	}
-	t = &Timing{}
-	t.Start, err = dec.parseTime(dec.p[0])
-	if err == nil {
-		t.Stop, err = dec.parseTime(dec.p[1])
-	}
-	return
+type stringReader struct {
+	s string
 }
 
-func (dec *Decoder) decodeRepeats(v string) (r *Repeat, err error) {
-	if !dec.split(v, ' ', 3, true) {
-		return nil, dec.err
+func (r *stringReader) ReadLine() (string, error) {
+	s, n := r.s, len(r.s)
+	if n == 0 {
+		return "", io.EOF
 	}
-	r = &Repeat{}
-	r.Interval, err = dec.parseDuration(dec.p[0])
-	if err == nil {
-		r.Duration, err = dec.parseDuration(dec.p[1])
-	}
-	if err == nil {
-		var d time.Duration
-		dec.split(dec.p[2], ' ', 255, false)
-		for _, it := range dec.p {
-			if d, err = dec.parseDuration(it); err != nil {
-				return
+	for i, ch := range s {
+		if ch == '\n' {
+			r.s = s[i+1:]
+			for i > 0 && s[i-1] == '\r' {
+				i--
 			}
-			r.Offsets = append(r.Offsets, d)
+			return s[:i], nil
 		}
 	}
-	return
+	r.s = ""
+	return s, nil
 }
 
-func (dec *Decoder) decodeTimezones(desc *Description, v string) (err error) {
-	dec.split(v, ' ', 255, false)
-	for i, n := 0, len(dec.p)-1; i < n; i += 2 {
-		z := &TimeZone{}
-		if z.Time, err = dec.parseTime(dec.p[i]); err != nil {
-			return
-		}
-		if z.Offset, err = dec.parseDuration(dec.p[i+1]); err != nil {
-			return
-		}
-		desc.TimeZones = append(desc.TimeZones, z)
-	}
-	return
+type reader struct {
+	b *bufio.Reader
 }
 
-func (dec *Decoder) decodeMedia(v string) (m *Media, err error) {
-	if !dec.split(v, ' ', 4, true) {
-		return nil, dec.err
-	}
-	m = &Media{
-		Type:  dec.p[0],
-		Proto: dec.p[2],
-	}
-	var formats = dec.p[3]
-	if dec.split(dec.p[1], '/', 2, false) {
-		m.PortNum, err = strconv.Atoi(dec.p[1])
-	}
-	if err == nil {
-		m.Port, err = strconv.Atoi(dec.p[0])
-	}
-	if err == nil {
-		dec.split(formats, ' ', 255, false)
-		for _, it := range dec.p {
-			p, err := strconv.Atoi(it)
-			if err != nil {
-				return nil, err
-			}
-			dec.touchMediaFormat(m, p)
-		}
-	}
-	return
-}
-
-type bufferedReader struct {
-	buf *bufio.Reader
-}
-
-func (r *bufferedReader) ReadLine() (string, error) {
-	ln, p, err := r.buf.ReadLine()
-	if p {
-		err = decodeError("line is too large")
+func (r *reader) ReadLine() (string, error) {
+	b, prefix, err := r.b.ReadLine()
+	if prefix && err == nil {
+		err = errLineTooLong
 	}
 	if err != nil {
 		return "", err
 	}
-	return string(ln), nil
+	return string(b), nil
 }
 
-type stringReader struct {
-	buf string
+var errLineTooLong = errors.New("sdp: line is too long")
+var errUnexpectedField = errors.New("unexpected field")
+var errFormat = errors.New("format error")
+
+type errDecode struct {
+	err  error
+	line int
+	text string
 }
 
-func (r *stringReader) ReadLine() (string, error) {
-	n := len(r.buf)
-	if n == 0 {
-		return "", io.EOF
-	}
-	i, j := 0, 0
-	for j < n {
-		if c := r.buf[j]; c == '\n' {
-			break
-		} else if c == '\r' {
-			j++
-		} else {
-			j++
-			i = j
-		}
-	}
-	v := r.buf[:i]
-	if n > j {
-		r.buf = r.buf[j+1:]
-	} else {
-		r.buf = ""
-	}
-	return v, nil
+func (e *errDecode) Error() string {
+	return fmt.Sprintf("sdp: %s on line %d '%s'", e.err.Error(), e.line, e.text)
 }
-
-type decodeError string
-
-func (d decodeError) Error() string {
-	return "sdp: decode error '" + string(d) + "'"
-}
-
-var ntpEpoch = time.Date(1900, time.January, 1, 0, 0, 0, 0, time.UTC)

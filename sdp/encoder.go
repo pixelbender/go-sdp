@@ -1,391 +1,220 @@
 package sdp
 
 import (
-	"sort"
+	"io"
 	"strconv"
 	"time"
 )
 
-// An Encoder writes an SDP description to a buffer.
+// An Encoder writes a session description to a buffer.
 type Encoder struct {
-	buf  []byte
-	pos  int
-	cont bool
+	w       io.Writer
+	buf     []byte
+	pos     int
+	newline bool
 }
 
-// NewEncoder returns a new encoder.
-func NewEncoder() *Encoder {
-	return &Encoder{}
+// NewEncoder returns a new encoder that writes to w.
+func NewEncoder(w io.Writer) *Encoder {
+	return &Encoder{w: w}
 }
 
-func (enc *Encoder) next(n int) (b []byte) {
-	p := enc.pos + n
-	if len(enc.buf) < p {
-		enc.grow(n)
-	}
-	b, enc.pos = enc.buf[enc.pos:p], p
-	return
-}
-
-func (enc *Encoder) grow(n int) {
-	p := enc.pos + n
-	if p < 1024 {
-		p = 1024
-	} else if s := len(enc.buf) << 1; p < s {
-		p = s
-	}
-	b := make([]byte, p)
-	if enc.pos > 0 {
-		copy(b, enc.buf[:enc.pos])
-	}
-	enc.buf = b
-}
-
-func (enc *Encoder) line(typ byte) {
-	if enc.cont {
-		b := enc.next(4)
-		b[0] = '\r'
-		b[1] = '\n'
-		b[2] = typ
-		b[3] = '='
-	} else {
-		b := enc.next(2)
-		b[0] = typ
-		b[1] = '='
-		enc.cont = true
-	}
-}
-
-func (enc *Encoder) char(v byte) {
-	b := enc.next(1)
-	b[0] = v
-}
-
-func (enc *Encoder) int(v int64) {
-	b := enc.next(20)
-	enc.pos += len(strconv.AppendInt(b[:0], v, 10)) - len(b)
-}
-
-func (enc *Encoder) string(v string) {
-	copy(enc.next(len(v)), v)
-}
-
-func (enc *Encoder) fields(v ...string) {
-	n := len(v) - 1
-	for _, it := range v {
-		n += len(it)
-	}
-	if n < 0 {
-		return
-	}
-	b := enc.next(n)
-	i := 0
-	for _, it := range v {
-		if i > 0 {
-			b[i] = ' '
-			i++
-		}
-		copy(b[i:], it)
-		i += len(it)
-	}
-}
-
-// Bytes returns a slice of buffer holding the encoded SDP description.
-func (enc *Encoder) Bytes() []byte {
-	if enc.cont {
-		b := enc.next(2)
-		b[0] = '\r'
-		b[1] = '\n'
-		enc.cont = false
-	}
-	return enc.buf[:enc.pos]
-}
-
-// String returns the encoded SDP description as string.
-func (enc *Encoder) String() string {
-	return string(enc.Bytes())
-}
-
-// Encode writes the SDP description into the buffer.
-func (enc *Encoder) Encode(desc *Description) {
-	enc.pos = 0
-	enc.cont = false
-
-	enc.line('v')
-	enc.int(int64(desc.Version))
-
-	if desc.Origin != nil {
-		enc.encodeOrigin(desc.Origin)
-	}
-	enc.line('s')
-	if desc.Session == "" {
-		enc.char('-')
-	} else {
-		enc.string(desc.Session)
-	}
-	if desc.Information != "" {
-		enc.line('i')
-		enc.string(desc.Information)
-	}
-	if desc.URI != "" {
-		enc.line('u')
-		enc.string(desc.URI)
-	}
-	enc.encodeList('e', desc.Email)
-	enc.encodeList('p', desc.Phone)
-	if c := desc.Connection; c != nil {
-		enc.line('c')
-		enc.encodeConn(c)
-	}
-	for typ, v := range desc.Bandwidth {
-		enc.encodeBandwidth(typ, v)
-	}
-	enc.encodeTiming(desc.Timing)
-	enc.encodeTimezones(desc.TimeZones)
-
-	if k := desc.Key; k != nil {
-		enc.encodeKey(k.Type, k.Value)
-	}
-	if desc.Mode != "" {
-		enc.line('a')
-		enc.string(desc.Mode)
-	}
-	if desc.Setup != "" {
-		enc.encodeAttr("setup", desc.Setup)
-	}
-	for _, g := range desc.Groups {
-		enc.line('a')
-		enc.string("group:")
-		enc.string(g.Semantics)
-		for _, it := range g.Media {
-			enc.char(' ')
-			enc.string(it)
+// Encode encodes the session description.
+func (e *Encoder) Encode(s *SessionDescription) error {
+	e.Reset()
+	e.session(s)
+	if e.w != nil {
+		_, err := e.w.Write(e.Bytes())
+		if err != nil {
+			return err
 		}
 	}
-	for _, it := range desc.Attributes {
-		enc.encodeAttr(it.Name, it.Value)
-	}
-	for _, it := range desc.Media {
-		enc.encodeMediaDesc(it)
-	}
+	return nil
 }
 
-func (enc *Encoder) encodeMediaDesc(m *Media) {
-	fmts := make([]int, 0, len(m.Formats))
-	for p := range m.Formats {
-		fmts = append(fmts, p)
-	}
-	sort.Ints(fmts)
+// Reset resets encoder state to be empty.
+func (e *Encoder) Reset() {
+	e.pos, e.newline = 0, false
+}
 
-	enc.line('m')
-	enc.string(m.Type)
-	enc.char(' ')
-	enc.int(int64(m.Port))
-	if m.PortNum != 0 {
-		enc.char('/')
-		enc.int(int64(m.PortNum))
+func (e *Encoder) session(s *SessionDescription) *Encoder {
+	e.add('v').int(int64(s.Version))
+	if s.Origin != nil {
+		e.add('o').origin(s.Origin)
 	}
-	enc.char(' ')
-	enc.string(m.Proto)
-	for _, p := range fmts {
-		enc.char(' ')
-		enc.int(int64(p))
+	e.add('s').str(s.Name)
+	if s.Information != "" {
+		e.add('i').str(s.Information)
+	}
+	if s.URI != "" {
+		e.add('u').str(s.URI)
+	}
+	for _, it := range s.Email {
+		e.add('e').str(it)
+	}
+	for _, it := range s.Phone {
+		e.add('p').str(it)
+	}
+	if s.Connection != nil {
+		e.add('c').connection(s.Connection)
+	}
+	for t, v := range s.Bandwidth {
+		e.add('b').bandwidth(t, v)
+	}
+	if len(s.TimeZone) > 0 {
+		e.add('z').timezone(s.TimeZone)
+	}
+	for _, it := range s.Key {
+		e.add('k').key(it)
+	}
+	if s.Mode != "" {
+		e.add('a').str(s.Mode)
+	}
+	for _, it := range s.Attributes {
+		e.add('a').attr(it)
+	}
+	e.add('t').timing(s.Timing)
+	for _, it := range s.Repeat {
+		e.add('r').repeat(it)
+	}
+	for _, it := range s.Media {
+		e.media(it)
+	}
+	return e
+}
+
+func (e *Encoder) media(m *Media) *Encoder {
+	e.add('m').str(m.Type).sp().int(int64(m.Port))
+	if m.PortNum > 0 {
+		e.char('/').int(int64(m.PortNum))
+	}
+	e.sp().str(m.Proto)
+	for _, it := range m.Formats {
+		e.sp().int(int64(it.Payload))
 	}
 	if m.Information != "" {
-		enc.line('i')
-		enc.string(m.Information)
+		e.add('i').str(m.Information)
 	}
-	if c := m.Connection; c != nil {
-		enc.line('c')
-		enc.encodeConn(c)
+	for _, it := range m.Connection {
+		e.add('c').connection(it)
 	}
-	for typ, v := range m.Bandwidth {
-		enc.encodeBandwidth(typ, v)
+	for t, v := range m.Bandwidth {
+		e.add('b').bandwidth(t, v)
 	}
-	if k := m.Key; k != nil {
-		enc.encodeKey(k.Type, k.Value)
+	for _, it := range m.Key {
+		e.add('k').key(it)
 	}
-	if c := m.Control; c != nil {
-		if c.Muxed {
-			enc.line('a')
-			enc.string("rtcp-mux")
-		} else {
-			enc.line('a')
-			enc.string("rtcp:")
-			enc.int(int64(c.Port))
-			enc.encodeTransport(c.Network, c.Type, c.Address)
-		}
-	}
-	if m.ID != "" {
-		enc.line('a')
-		enc.string("mid:")
-		enc.string(m.ID)
-	}
-	for _, p := range fmts {
-		enc.encodeMediaMap(m.Formats[p])
+	for _, it := range m.Formats {
+		e.format(it)
 	}
 	if m.Mode != "" {
-		enc.line('a')
-		enc.string(m.Mode)
-	}
-	if m.Setup != "" {
-		enc.encodeAttr("setup", m.Setup)
+		e.add('a').str(m.Mode)
 	}
 	for _, it := range m.Attributes {
-		enc.encodeAttr(it.Name, it.Value)
+		e.add('a').attr(it)
 	}
+	return e
 }
 
-func (enc *Encoder) encodeMediaMap(f *Format) {
-	if f == nil {
-		return
-	}
-	enc.line('a')
-	enc.string("rtpmap:")
-	enc.int(int64(f.Payload))
-	enc.char(' ')
-	enc.string(f.Codec)
-	enc.char('/')
-	enc.int(int64(f.Clock))
-	if f.Channels != 0 {
-		enc.char('/')
-		enc.int(int64(f.Channels))
+func (e *Encoder) format(f *Format) *Encoder {
+	p := int64(f.Payload)
+	if f.Name != "" {
+		e.add('a').str("rtpmap:").int(p).sp().str(f.Name).char('/').int(int64(f.ClockRate))
+		if f.Channels > 0 {
+			e.char('/').int(int64(f.Channels))
+		}
 	}
 	for _, it := range f.Feedback {
-		enc.line('a')
-		enc.string("rtcp-fb:")
-		enc.int(int64(f.Payload))
-		enc.char(' ')
-		enc.string(it)
+		e.add('a').str("rtcp-fb:").int(p).sp().str(it)
 	}
 	for _, it := range f.Params {
-		enc.line('a')
-		enc.string("fmtp:")
-		enc.int(int64(f.Payload))
-		enc.char(' ')
-		enc.string(it)
+		e.add('a').str("fmtp:").int(p).sp().str(it)
 	}
+	return e
 }
 
-func (enc *Encoder) encodeTiming(t *Timing) {
-	enc.line('t')
+func (e *Encoder) attr(a *Attr) *Encoder {
+	if a.Value == "" {
+		return e.str(a.Name)
+	}
+	return e.str(a.Name).char(':').str(a.Value)
+}
+
+func (e *Encoder) timezone(z []*TimeZone) *Encoder {
+	for i, it := range z {
+		if i > 0 {
+			e.char(' ')
+		}
+		e.time(it.Time).sp().duration(it.Offset)
+	}
+	return e
+}
+
+func (e *Encoder) timing(t *Timing) *Encoder {
 	if t == nil {
-		enc.string("0 0")
-	} else {
-		enc.encodeTime(t.Start)
-		enc.char(' ')
-		enc.encodeTime(t.Stop)
-		if t.Repeat != nil {
-			enc.encodeRepeat(t.Repeat)
-		}
+		return e.str("0 0")
 	}
+	return e.time(t.Start).sp().time(t.Stop)
 }
 
-func (enc *Encoder) encodeRepeat(r *Repeat) {
-	enc.line('r')
-	enc.encodeDuration(r.Interval)
-	enc.char(' ')
-	enc.encodeDuration(r.Duration)
+func (e *Encoder) repeat(r *Repeat) *Encoder {
+	e.duration(r.Interval).sp().duration(r.Duration)
 	for _, it := range r.Offsets {
-		enc.char(' ')
-		enc.encodeDuration(it)
+		e.sp().duration(it)
 	}
+	return e
 }
 
-func (enc *Encoder) encodeTimezones(z []*TimeZone) {
-	if len(z) > 0 {
-		enc.line('z')
-		for i, it := range z {
-			if i > 0 {
-				enc.char(' ')
-			}
-			enc.encodeTime(it.Time)
-			enc.char(' ')
-			enc.encodeDuration(it.Offset)
-		}
-	}
-}
-
-func (enc *Encoder) encodeAttr(k, v string) {
-	enc.line('a')
-	enc.string(k)
-	if v != "" {
-		enc.char(':')
-		enc.string(v)
-	}
-}
-
-func (enc *Encoder) encodeKey(k, v string) {
-	enc.line('k')
-	enc.string(k)
-	if v != "" {
-		enc.char(':')
-		enc.string(v)
-	}
-}
-
-func (enc *Encoder) encodeList(typ byte, v []string) {
-	for _, it := range v {
-		enc.line(typ)
-		enc.string(it)
-	}
-}
-
-func (enc *Encoder) encodeTime(t time.Time) {
+func (e *Encoder) time(t time.Time) *Encoder {
 	if t.IsZero() {
-		enc.char('0')
-	} else {
-		d := int64(t.Sub(ntpEpoch).Seconds())
-		enc.int(d)
+		return e.char('0')
+	}
+	return e.int(int64(t.Sub(epoch).Seconds()))
+}
+
+func (e *Encoder) duration(d time.Duration) *Encoder {
+	v := int64(d.Seconds())
+	switch {
+	case v == 0:
+		return e.char('0')
+	case v%86400 == 0:
+		return e.int(v / 86400).char('d')
+	case v%3600 == 0:
+		return e.int(v / 3600).char('h')
+	case v%60 == 0:
+		return e.int(v / 60).char('m')
+	default:
+		return e.int(v)
 	}
 }
 
-func (enc *Encoder) encodeDuration(d time.Duration) {
-	sec := int64(d.Seconds())
-	if sec == 0 {
-		enc.char('0')
-	} else if sec%86400 == 0 {
-		enc.int(sec / 86400)
-		enc.char('d')
-	} else if sec%3600 == 0 {
-		enc.int(sec / 3600)
-		enc.char('h')
-	} else if sec%60 == 0 {
-		enc.int(sec / 60)
-		enc.char('m')
-	} else {
-		enc.int(sec)
-	}
+func (e *Encoder) bandwidth(m string, v int) *Encoder {
+	return e.str(m).char(':').int(int64(v))
 }
 
-func (enc *Encoder) encodeOrigin(orig *Origin) {
-	enc.line('o')
-	if orig.Username == "" {
-		enc.char('-')
-	} else {
-		enc.string(orig.Username)
+func (e *Encoder) key(k *Key) *Encoder {
+	if k.Value == "" {
+		return e.str(k.Method)
 	}
-	enc.char(' ')
-	enc.int(orig.SessionID)
-	enc.char(' ')
-	enc.int(orig.SessionVersion)
-	enc.char(' ')
-	enc.encodeTransport(orig.Network, orig.Type, orig.Address)
+	return e.str(k.Method).char(':').str(k.Value)
 }
 
-func (enc *Encoder) encodeConn(c *Connection) {
-	enc.encodeTransport(c.Network, c.Type, c.Address)
-	if c.TTL != 0 {
-		enc.char('/')
-		enc.int(int64(c.TTL))
-		if c.AddressNum != 0 {
-			enc.char('/')
-			enc.int(int64(c.AddressNum))
-		}
-	}
+func (e *Encoder) origin(o *Origin) *Encoder {
+	return e.str(o.Username).sp().int(o.SessionID).sp().int(o.SessionVersion).sp().transport(o.Network, o.Type, o.Address)
 }
 
-func (enc *Encoder) encodeTransport(network, typ, addr string) {
+func (e *Encoder) connection(c *Connection) *Encoder {
+	e.transport(c.Network, c.Type, c.Address)
+	if c.TTL > 0 {
+		e.char('/').int(int64(c.TTL))
+	}
+	if c.AddressNum > 1 {
+		e.char('/').int(int64(c.AddressNum))
+	}
+	return e
+}
+
+func (e *Encoder) transport(network, typ, addr string) *Encoder {
 	if network == "" {
 		network = "IN"
 	}
@@ -395,12 +224,94 @@ func (enc *Encoder) encodeTransport(network, typ, addr string) {
 	if addr == "" {
 		addr = "127.0.0.1"
 	}
-	enc.fields(network, typ, addr)
+	return e.fields(network, typ, addr)
 }
 
-func (enc *Encoder) encodeBandwidth(typ string, v int) {
-	enc.line('b')
-	enc.string(typ)
-	enc.char(':')
-	enc.int(int64(v))
+func (e *Encoder) str(v string) *Encoder {
+	if v == "" {
+		return e.char('-')
+	}
+	copy(e.next(len(v)), v)
+	return e
+}
+
+func (e *Encoder) fields(v ...string) *Encoder {
+	n := len(v) - 1
+	for _, it := range v {
+		n += len(it)
+	}
+	p, b := 0, e.next(n)
+	for _, it := range v {
+		if p > 0 {
+			b[p] = ' '
+			p++
+		}
+		p += copy(b[p:], it)
+	}
+	return e
+}
+
+func (e *Encoder) sp() *Encoder {
+	return e.char(' ')
+}
+
+func (e *Encoder) char(v byte) *Encoder {
+	e.next(1)[0] = v
+	return e
+}
+
+func (e *Encoder) int(v int64) *Encoder {
+	b := e.next(20)
+	e.pos += len(strconv.AppendInt(b[:0], v, 10)) - len(b)
+	return e
+}
+
+func (e *Encoder) add(n byte) *Encoder {
+	if e.newline {
+		b := e.next(4)
+		b[0], b[1], b[2], b[3] = '\r', '\n', n, '='
+	} else {
+		b := e.next(2)
+		b[0], b[1] = n, '='
+		e.newline = true
+	}
+	return e
+}
+
+func (e *Encoder) next(n int) (b []byte) {
+	p := e.pos + n
+	if len(e.buf) < p {
+		e.grow(p)
+	}
+	b, e.pos = e.buf[e.pos:p], p
+	return
+}
+
+func (e *Encoder) grow(p int) {
+	if p < 1024 {
+		p = 1024
+	} else if s := len(e.buf) << 1; p < s {
+		p = s
+	}
+	b := make([]byte, p)
+	if e.pos > 0 {
+		copy(b, e.buf[:e.pos])
+	}
+	e.buf = b
+}
+
+// Bytes returns encoded bytes of the last session description.
+// The bytes stop being valid at the next encoder call.
+func (e *Encoder) Bytes() []byte {
+	if e.newline {
+		b := e.next(2)
+		b[0], b[1] = '\r', '\n'
+		e.newline = false
+	}
+	return e.buf[:e.pos]
+}
+
+// Bytes returns the encoded session description as str.
+func (e *Encoder) String() string {
+	return string(e.Bytes())
 }
