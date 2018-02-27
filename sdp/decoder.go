@@ -151,6 +151,8 @@ func (d *Decoder) media(m *Media, f byte, v string) error {
 	case 'a':
 		a := d.attr(v)
 		switch a.Name {
+		case ModeInactive, ModeRecvOnly, ModeSendOnly, ModeSendRecv:
+			m.Mode = a.Name
 		case "rtpmap", "rtcp-fb", "fmtp":
 			err = d.format(m, a)
 		default:

@@ -86,6 +86,14 @@ func main() {
 }
 ```
 
+## Attributes mapping
+| Scope | Attribute | Struct, Property |
+| ----- | --------- | ----------------- |
+| session, media | sendrecv, recvonly, sendonly, inactive | Session.Mode, Media.Mode |
+| media | rtpmap | Format |
+| media | rtcp-fb | Format.Feedback |
+| media | fmtp | Format.Params |
+
 ## Specifications
 
-- [RFC 5389: Session Description Protocol](https://tools.ietf.org/html/rfc4566)
+- [RFC 4566: Session Description Protocol](https://tools.ietf.org/html/rfc4566)
