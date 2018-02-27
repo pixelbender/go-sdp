@@ -28,7 +28,7 @@ import (
 )
 
 func main() {
-	desc, err := sdp.Parse(`v=0
+	desc, err := sdp.ParseString(`v=0
 o=alice 2890844526 2890844526 IN IP4 alice.example.org
 s=Example
 c=IN IP4 127.0.0.1
@@ -41,7 +41,7 @@ a=rtpmap:8 PCMA/8000`)
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		fmt.Println(desc.Media[0].Formats[0].Name) // prints PCMU
+		fmt.Println(desc.Media[0].Format[0].Name) // prints PCMU
 	}
 }
 ```
@@ -65,7 +65,9 @@ func main() {
     			SessionVersion: 2890844526,
     		},
     		Name:       "Example",
-    		Connection: &sdp.Connection{Address: "127.0.0.1"},
+    		Connection: &sdp.Connection{
+    			Address: "127.0.0.1",
+            },
     		Media: []*sdp.Media{
     			{
     				Type:  "audio",
