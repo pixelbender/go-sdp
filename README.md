@@ -1,6 +1,6 @@
 # go-sdp
 
-Go implementation of SDP (Session Description Protocol)
+Go implementation of SDP (Session Description Protocol). No external dependencies.
 
 [![Build Status](https://api.travis-ci.org/pixelbender/go-sdp.svg)](https://travis-ci.org/pixelbender/go-sdp)
 [![Coverage Status](https://coveralls.io/repos/github/pixelbender/go-sdp/badge.svg?branch=master)](https://coveralls.io/github/pixelbender/go-sdp?branch=master)
@@ -14,7 +14,7 @@ Go implementation of SDP (Session Description Protocol)
 ## Installation
 
 ```sh
-go get github.com/pixelbender/go-sdp/...
+go get github.com/pixelbender/go-sdp/sdp
 ```
 
 ## SDP Decoding
@@ -28,7 +28,7 @@ import (
 )
 
 func main() {
-	desc, err := sdp.ParseString(`v=0
+	sess, err := sdp.ParseString(`v=0
 o=alice 2890844526 2890844526 IN IP4 alice.example.org
 s=Example
 c=IN IP4 127.0.0.1
@@ -41,7 +41,7 @@ a=rtpmap:8 PCMA/8000`)
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		fmt.Println(desc.Media[0].Format[0].Name) // prints PCMU
+		fmt.Println(sess.Media[0].Format[0].Name) // prints PCMU
 	}
 }
 ```
@@ -57,7 +57,7 @@ import (
 )
 
 func main() {
-	sess := &sdp.SessionDescription{
+	sess := &sdp.Session{
     		Origin: &sdp.Origin{
     			Username:       "alice",
     			Address:        "alice.example.org",
@@ -87,10 +87,11 @@ func main() {
 ```
 
 ## Attributes mapping
-| Scope | Attribute | Struct / Property |
+
+| Scope | Attribute | Property |
 | ----- | --------- | ----------------- |
 | session, media | sendrecv, recvonly, sendonly, inactive | Session.Mode, Media.Mode |
-| media | rtpmap | Format |
+| media | rtpmap | Media.Format |
 | media | rtcp-fb | Format.Feedback |
 | media | fmtp | Format.Params |
 
