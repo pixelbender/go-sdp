@@ -59,10 +59,31 @@ func BenchmarkDecodeReader(b *testing.B) {
 	}
 }
 
+func BenchmarkEncode(b *testing.B) {
+	sess, err := ParseString(seminarDescr)
+	if err != nil {
+		b.Fatal(err)
+	}
+	for i := 0; i < b.N; i++ {
+		new(Encoder).Encode(sess)
+	}
+}
+
+func BenchmarkEncodeReuse(b *testing.B) {
+	sess, err := ParseString(seminarDescr)
+	if err != nil {
+		b.Fatal(err)
+	}
+	e := new(Encoder)
+	for i := 0; i < b.N; i++ {
+		e.Encode(sess)
+	}
+}
+
 func TestReadmeExample(t *testing.T) {
 	t.Parallel()
 
-	sess := &SessionDescription{
+	sess := &Session{
 		Origin: &Origin{
 			Username:       "alice",
 			Address:        "alice.example.org",
@@ -101,7 +122,7 @@ func TestSeminarExample(t *testing.T) {
 	start, _ := time.Parse(layout, "1996-02-27 15:26:59 +0000 UTC")
 	stop, _ := time.Parse(layout, "1996-05-30 16:26:59 +0000 UTC")
 
-	sess := &SessionDescription{
+	sess := &Session{
 		Origin: &Origin{
 			Username:       "jdoe",
 			SessionID:      2890844526,
@@ -114,7 +135,8 @@ func TestSeminarExample(t *testing.T) {
 		Email:       []string{"j.doe@example.com (Jane Doe)"},
 		Phone:       []string{"+1 617 555-6011"},
 		Connection: &Connection{
-			Address: "224.2.17.12/127",
+			Address: "224.2.17.12",
+			TTL:     127,
 		},
 		Bandwidth: Bandwidth{
 			"AS": 2000,
@@ -170,7 +192,7 @@ func TestSeminarExample(t *testing.T) {
 	assert(t, expected, sess)
 }
 
-func assert(t *testing.T, expected, result *SessionDescription) {
+func assert(t *testing.T, expected, result *Session) {
 	r := strings.Split(result.String(), "\r\n")
 	e := strings.Split(expected.String(), "\r\n")
 	for i, it := range r {

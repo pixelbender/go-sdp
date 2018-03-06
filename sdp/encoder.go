@@ -20,7 +20,7 @@ func NewEncoder(w io.Writer) *Encoder {
 }
 
 // Encode encodes the session description.
-func (e *Encoder) Encode(s *SessionDescription) error {
+func (e *Encoder) Encode(s *Session) error {
 	e.Reset()
 	e.session(s)
 	if e.w != nil {
@@ -37,7 +37,7 @@ func (e *Encoder) Reset() {
 	e.pos, e.newline = 0, false
 }
 
-func (e *Encoder) session(s *SessionDescription) *Encoder {
+func (e *Encoder) session(s *Session) *Encoder {
 	e.add('v').int(int64(s.Version))
 	if s.Origin != nil {
 		e.add('o').origin(s.Origin)
@@ -91,6 +91,9 @@ func (e *Encoder) media(m *Media) *Encoder {
 	e.sp().str(m.Proto)
 	for _, it := range m.Formats {
 		e.sp().int(int64(it.Payload))
+	}
+	if len(m.Formats) == 0 {
+		e.sp().char('*')
 	}
 	if m.Information != "" {
 		e.add('i').str(m.Information)

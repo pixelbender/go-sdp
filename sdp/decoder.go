@@ -10,12 +10,12 @@ import (
 )
 
 // Parse reads session description from the buffer.
-func Parse(b []byte) (*SessionDescription, error) {
+func Parse(b []byte) (*Session, error) {
 	return ParseString(string(b))
 }
 
 // ParseString reads session description from the string.
-func ParseString(s string) (*SessionDescription, error) {
+func ParseString(s string) (*Session, error) {
 	return NewDecoderString(s).Decode()
 }
 
@@ -36,19 +36,22 @@ func NewDecoderString(s string) *Decoder {
 }
 
 // Decode encodes the session description.
-func (d *Decoder) Decode() (*SessionDescription, error) {
+func (d *Decoder) Decode() (*Session, error) {
 	line := 0
-	sess := new(SessionDescription)
+	sess := new(Session)
 	var media *Media
 
 	for {
 		line++
 		s, err := d.r.ReadLine()
 		if err != nil {
-			if err == io.EOF && line > 1 {
+			if err == io.EOF && sess.Origin != nil {
 				break
 			}
 			return nil, err
+		}
+		if len(s) == 0 && sess.Origin != nil {
+			break
 		}
 		if len(s) < 2 || s[1] != '=' {
 			return nil, &errDecode{errFormat, line, s}
@@ -72,7 +75,7 @@ func (d *Decoder) Decode() (*SessionDescription, error) {
 	return sess, nil
 }
 
-func (d *Decoder) session(s *SessionDescription, f byte, v string) error {
+func (d *Decoder) session(s *Session, f byte, v string) error {
 	var err error
 	switch f {
 	case 'v':
@@ -225,6 +228,9 @@ func (d *Decoder) proto(m *Media, v string) error {
 	}
 	p, _ = d.fields(formats, maxLineSize)
 	for _, it := range p {
+		if it == "*" {
+			continue
+		}
 		pt, err := strconv.Atoi(it)
 		if err != nil {
 			return err
