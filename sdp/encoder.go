@@ -67,15 +67,15 @@ func (e *Encoder) session(s *Session) *Encoder {
 	for _, it := range s.Key {
 		e.add('k').key(it)
 	}
+	e.add('t').timing(s.Timing)
+	for _, it := range s.Repeat {
+		e.add('r').repeat(it)
+	}
 	if s.Mode != "" {
 		e.add('a').str(s.Mode)
 	}
 	for _, it := range s.Attributes {
 		e.add('a').attr(it)
-	}
-	e.add('t').timing(s.Timing)
-	for _, it := range s.Repeat {
-		e.add('r').repeat(it)
 	}
 	for _, it := range s.Media {
 		e.media(it)
