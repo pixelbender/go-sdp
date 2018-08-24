@@ -42,7 +42,7 @@ func (e *Encoder) session(s *Session) *Encoder {
 	if s.Origin != nil {
 		e.add('o').origin(s.Origin)
 	}
-	e.add('s').str(s.Name)
+	e.add('s').str(strd(s.Name, "-"))
 	if s.Information != "" {
 		e.add('i').str(s.Information)
 	}
