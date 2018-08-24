@@ -3,14 +3,24 @@ package sdp
 // Attributes represent a list of SDP attributes.
 type Attributes []*Attr
 
-// Get returns first attribute by name.
-func (a Attributes) Get(name string) *Attr {
+// Has returns presence of attribute by name.
+func (a Attributes) Has(name string) bool {
 	for _, it := range a {
 		if it.Name == name {
-			return it
+			return true
 		}
 	}
-	return nil
+	return false
+}
+
+// Get returns first attribute value by name.
+func (a Attributes) Get(name string) string {
+	for _, it := range a {
+		if it.Name == name {
+			return it.Value
+		}
+	}
+	return ""
 }
 
 // Attr represents session or media attribute.

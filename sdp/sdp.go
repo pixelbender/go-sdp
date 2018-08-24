@@ -102,6 +102,56 @@ type Media struct {
 	Formats []*Format // Media Formats ("rtpmap")
 }
 
+// Streaming modes.
+const (
+	SendRecv = "sendrecv"
+	SendOnly = "sendonly"
+	RecvOnly = "recvonly"
+	Inactive = "inactive"
+)
+
+// ModeAnswer negotiates streaming mode for SDP answer.
+func ModeAnswer(local, remote string) string {
+	switch local {
+	case SendRecv:
+		switch remote {
+		case RecvOnly:
+			return SendOnly
+		case SendOnly:
+			return RecvOnly
+		default:
+			return remote
+		}
+	case SendOnly:
+		switch remote {
+		case SendRecv, RecvOnly:
+			return SendOnly
+		}
+	case RecvOnly:
+		switch remote {
+		case SendRecv, SendOnly:
+			return RecvOnly
+		}
+	}
+	return Inactive
+}
+
+// DeleteAttr removes all elements with name from attrs.
+func DeleteAttr(attrs Attributes, name ... string) Attributes {
+	n := 0
+loop:
+	for _, it := range attrs {
+		for _, v := range name {
+			if it.Name == v {
+				continue loop
+			}
+		}
+		attrs[n] = it
+		n++
+	}
+	return attrs[:n]
+}
+
 // Format returns format description by payload type.
 func (m *Media) Format(pt int) *Format {
 	for _, f := range m.Formats {
