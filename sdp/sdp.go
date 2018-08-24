@@ -20,9 +20,9 @@ type Session struct {
 	Bandwidth   Bandwidth   // Bandwidth ("b=")
 	TimeZone    []*TimeZone // TimeZone ("z=")
 	Key         []*Key      // Encryption Keys ("k=")
-	Attributes              // Session Attributes ("a=")
 	Timing      *Timing     // Timing ("t=")
 	Repeat      []*Repeat   // Repeat Times ("r=")
+	Attributes              // Session Attributes ("a=")
 	Media       []*Media    // Media Descriptions ("m=")
 
 	Mode string // Streaming mode ("sendrecv", "recvonly", "sendonly", or "inactive")

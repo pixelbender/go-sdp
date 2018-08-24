@@ -203,7 +203,7 @@ func (e *Encoder) key(k *Key) *Encoder {
 }
 
 func (e *Encoder) origin(o *Origin) *Encoder {
-	return e.str(o.Username).sp().int(o.SessionID).sp().int(o.SessionVersion).sp().transport(o.Network, o.Type, o.Address)
+	return e.str(strd(o.Username, "-")).sp().int(o.SessionID).sp().int(o.SessionVersion).sp().transport(o.Network, o.Type, o.Address)
 }
 
 func (e *Encoder) connection(c *Connection) *Encoder {
@@ -218,16 +218,14 @@ func (e *Encoder) connection(c *Connection) *Encoder {
 }
 
 func (e *Encoder) transport(network, typ, addr string) *Encoder {
-	if network == "" {
-		network = "IN"
+	return e.fields(strd(network, "IN"), strd(typ, "IP4"), strd(addr, "127.0.0.1"))
+}
+
+func strd(v, def string) string {
+	if v == "" {
+		return def
 	}
-	if typ == "" {
-		typ = "IP4"
-	}
-	if addr == "" {
-		addr = "127.0.0.1"
-	}
-	return e.fields(network, typ, addr)
+	return v
 }
 
 func (e *Encoder) str(v string) *Encoder {
