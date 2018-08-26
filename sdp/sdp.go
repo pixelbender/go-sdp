@@ -110,7 +110,7 @@ const (
 	Inactive = "inactive"
 )
 
-// NegotiateMode generates streaming mode for answer.
+// NegotiateMode negotiates streaming mode.
 func NegotiateMode(local, remote string) string {
 	switch local {
 	case SendRecv:
