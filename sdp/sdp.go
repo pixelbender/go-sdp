@@ -110,8 +110,8 @@ const (
 	Inactive = "inactive"
 )
 
-// ModeAnswer negotiates streaming mode for SDP answer.
-func ModeAnswer(local, remote string) string {
+// NegotiateMode generates streaming mode for answer.
+func NegotiateMode(local, remote string) string {
 	switch local {
 	case SendRecv:
 		switch remote {
