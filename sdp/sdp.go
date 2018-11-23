@@ -182,7 +182,7 @@ func GetAttribute(sess *sdp.Session, name string) string {
 		}
 	}
 	for _, media := range sess.Media {
-		for _, it := range sess.Attributes {
+		for _, it := range media.Attributes {
 			if it.Name == name {
 				return it.Value
 			}
