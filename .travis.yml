@@ -2,9 +2,6 @@ language: go
 sudo: false
 go:
   - tip
-before_install:
-  - go install golang.org/x/lint/golint
 script:
   - go test -v ./...
   - go test -bench=. ./...
-  - $GOPATH/bin/golint ./...
