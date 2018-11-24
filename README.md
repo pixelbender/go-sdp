@@ -3,7 +3,6 @@
 Go implementation of SDP (Session Description Protocol). No external dependencies.
 
 [![Build Status](https://api.travis-ci.org/pixelbender/go-sdp.svg)](https://travis-ci.org/pixelbender/go-sdp)
-[![Coverage Status](https://coveralls.io/repos/github/pixelbender/go-sdp/badge.svg?branch=master)](https://coveralls.io/github/pixelbender/go-sdp?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/pixelbender/go-sdp)](https://goreportcard.com/report/github.com/pixelbender/go-sdp)
 [![GoDoc](https://godoc.org/github.com/pixelbender/go-sdp?status.svg)](https://godoc.org/github.com/pixelbender/go-sdp/sdp)
 
@@ -14,7 +13,7 @@ Go implementation of SDP (Session Description Protocol). No external dependencie
 ## Installation
 
 ```sh
-go get github.com/pixelbender/go-sdp/sdp
+go get github.com/pixelbender/go-sdp/...
 ```
 
 ## SDP Decoding
