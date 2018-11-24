@@ -137,7 +137,7 @@ func NegotiateMode(local, remote string) string {
 }
 
 // DeleteAttr removes all elements with name from attrs.
-func DeleteAttr(attrs Attributes, name ... string) Attributes {
+func DeleteAttr(attrs Attributes, name ...string) Attributes {
 	n := 0
 loop:
 	for _, it := range attrs {
@@ -173,20 +173,3 @@ type Format struct {
 }
 
 var epoch = time.Date(1900, time.January, 1, 0, 0, 0, 0, time.UTC)
-
-// GetAttribute returns session or first determined media attribute.
-func (sess *Session) GetAttribute(name string) string {
-	for _, it := range sess.Attributes {
-		if it.Name == name {
-			return it.Value
-		}
-	}
-	for _, media := range sess.Media {
-		for _, it := range media.Attributes {
-			if it.Name == name {
-				return it.Value
-			}
-		}
-	}
-	return ""
-}

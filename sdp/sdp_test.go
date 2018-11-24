@@ -42,6 +42,7 @@ a=rtpmap:8 PCMA/8000
 )
 
 func BenchmarkDecode(b *testing.B) {
+	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		_, err := ParseString(seminarDescr)
 		if err != nil {
@@ -51,6 +52,7 @@ func BenchmarkDecode(b *testing.B) {
 }
 
 func BenchmarkDecodeReader(b *testing.B) {
+	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		_, err := NewDecoder(strings.NewReader(seminarDescr)).Decode()
 		if err != nil {
@@ -60,6 +62,7 @@ func BenchmarkDecodeReader(b *testing.B) {
 }
 
 func BenchmarkEncode(b *testing.B) {
+	b.ReportAllocs()
 	sess, err := ParseString(seminarDescr)
 	if err != nil {
 		b.Fatal(err)
@@ -70,6 +73,7 @@ func BenchmarkEncode(b *testing.B) {
 }
 
 func BenchmarkEncodeReuse(b *testing.B) {
+	b.ReportAllocs()
 	sess, err := ParseString(seminarDescr)
 	if err != nil {
 		b.Fatal(err)
