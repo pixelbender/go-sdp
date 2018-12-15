@@ -92,9 +92,6 @@ func (e *Encoder) media(m *Media) *Encoder {
 	for _, it := range m.Formats {
 		e.sp().int(int64(it.Payload))
 	}
-	if len(m.Formats) == 0 {
-		e.sp().char('*')
-	}
 	if m.Information != "" {
 		e.add('i').str(m.Information)
 	}

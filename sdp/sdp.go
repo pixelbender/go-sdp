@@ -172,4 +172,8 @@ type Format struct {
 	Params    []string // "fmtp" attributes
 }
 
+func (f *Format) String() string {
+	return f.Name
+}
+
 var epoch = time.Date(1900, time.January, 1, 0, 0, 0, 0, time.UTC)

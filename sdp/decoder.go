@@ -228,9 +228,6 @@ func (d *Decoder) proto(m *Media, v string) error {
 	}
 	p, _ = d.fields(formats, maxLineSize)
 	for _, it := range p {
-		if it == "*" {
-			continue
-		}
 		pt, err := strconv.Atoi(it)
 		if err != nil {
 			return err
