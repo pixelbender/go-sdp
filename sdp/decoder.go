@@ -101,10 +101,11 @@ func (d *Decoder) session(s *Session, f byte, v string) error {
 		}
 		s.Connection, err = d.connection(v)
 	case 'b':
-		if s.Bandwidth == nil {
-			s.Bandwidth = make(Bandwidth)
+		b, err := d.bandwidth(v)
+		if err != nil {
+			return err
 		}
-		err = d.bandwidth(s.Bandwidth, v)
+		s.Bandwidth = append(s.Bandwidth, b)
 	case 'z':
 		s.TimeZone, err = d.timezone(v)
 	case 'k':
@@ -145,10 +146,11 @@ func (d *Decoder) media(m *Media, f byte, v string) error {
 		}
 		m.Connection = append(m.Connection, conn)
 	case 'b':
-		if m.Bandwidth == nil {
-			m.Bandwidth = make(Bandwidth)
+		b, err := d.bandwidth(v)
+		if err != nil {
+			return err
 		}
-		err = d.bandwidth(m.Bandwidth, v)
+		m.Bandwidth = append(m.Bandwidth, b)
 	case 'k':
 		m.Key = append(m.Key, d.key(v))
 	case 'a':
@@ -176,7 +178,7 @@ func (d *Decoder) format(m *Media, a *Attr) error {
 	if err != nil {
 		return err
 	}
-	f, v := m.Format(pt), p[1]
+	f, v := m.FormatByPayload(uint8(pt)), p[1]
 	if f == nil {
 		return nil
 	}
@@ -226,13 +228,17 @@ func (d *Decoder) proto(m *Media, v string) error {
 	if m.Port, err = strconv.Atoi(p[0]); err != nil {
 		return err
 	}
+	if !isRTP(m.Proto) {
+		m.FormatDescr = formats
+		return nil
+	}
 	p, _ = d.fields(formats, maxLineSize)
 	for _, it := range p {
 		pt, err := strconv.Atoi(it)
 		if err != nil {
 			return err
 		}
-		m.Formats = append(m.Formats, &Format{Payload: pt})
+		m.Format = append(m.Format, &Format{Payload: uint8(pt)})
 	}
 	return nil
 }
@@ -280,17 +286,19 @@ func (d *Decoder) connection(v string) (*Connection, error) {
 	return c, nil
 }
 
-func (d *Decoder) bandwidth(b Bandwidth, v string) error {
+func (d *Decoder) bandwidth(v string) (*Bandwidth, error) {
 	p, ok := d.split(v, ':', 2)
 	if !ok {
-		return errFormat
+		return nil, errFormat
 	}
 	val, err := d.int(p[1])
 	if err != nil {
-		return err
+		return nil, err
 	}
-	b[p[0]] = int(val)
-	return nil
+	return &Bandwidth{
+		Type:  p[0],
+		Value: int(val),
+	}, nil
 }
 
 func (d *Decoder) timezone(v string) ([]*TimeZone, error) {

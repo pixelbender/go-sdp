@@ -72,7 +72,7 @@ func main() {
     				Type:  "audio",
     				Port:  10000,
     				Proto: "RTP/AVP",
-    				Formats: []*sdp.Format{
+    				Format: []*sdp.Format{
     					{Payload: 0, Name: "PCMU", ClockRate: 8000},
     					{Payload: 8, Name: "PCMA", ClockRate: 8000},
     				},

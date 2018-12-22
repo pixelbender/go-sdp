@@ -1,6 +1,7 @@
 package sdp
 
 import (
+	"strings"
 	"time"
 )
 
@@ -9,23 +10,22 @@ const ContentType = "application/sdp"
 
 // Session represents an SDP session description.
 type Session struct {
-	Version     int         // Protocol Version ("v=")
-	Origin      *Origin     // Origin ("o=")
-	Name        string      // Session Name ("s=")
-	Information string      // Session Information ("i=")
-	URI         string      // URI ("u=")
-	Email       []string    // Email Address ("e=")
-	Phone       []string    // Phone Number ("p=")
-	Connection  *Connection // Connection Data ("c=")
-	Bandwidth   Bandwidth   // Bandwidth ("b=")
-	TimeZone    []*TimeZone // TimeZone ("z=")
-	Key         []*Key      // Encryption Keys ("k=")
-	Timing      *Timing     // Timing ("t=")
-	Repeat      []*Repeat   // Repeat Times ("r=")
-	Attributes              // Session Attributes ("a=")
-	Media       []*Media    // Media Descriptions ("m=")
-
-	Mode string // Streaming mode ("sendrecv", "recvonly", "sendonly", or "inactive")
+	Version     int          // Protocol Version ("v=")
+	Origin      *Origin      // Origin ("o=")
+	Name        string       // Session Name ("s=")
+	Information string       // Session Information ("i=")
+	URI         string       // URI ("u=")
+	Email       []string     // Email Address ("e=")
+	Phone       []string     // Phone Number ("p=")
+	Connection  *Connection  // Connection Data ("c=")
+	Bandwidth   []*Bandwidth // Bandwidth ("b=")
+	TimeZone    []*TimeZone  // TimeZone ("z=")
+	Key         []*Key       // Encryption Keys ("k=")
+	Timing      *Timing      // Timing ("t=")
+	Repeat      []*Repeat    // Repeat Times ("r=")
+	Attributes               // Session Attributes ("a=")
+	Media       []*Media     // Media Descriptions ("m=")
+	Mode        string       // Streaming mode ("sendrecv", "recvonly", "sendonly", or "inactive")
 }
 
 // String returns the encoded session description as string.
@@ -35,7 +35,9 @@ func (s *Session) String() string {
 
 // Bytes returns the encoded session description as buffer.
 func (s *Session) Bytes() []byte {
-	return new(Encoder).session(s).Bytes()
+	e := NewEncoder(nil)
+	e.Encode(s)
+	return e.Bytes()
 }
 
 // Origin represents an originator of the session.
@@ -58,7 +60,10 @@ type Connection struct {
 }
 
 // Bandwidth contains session or media bandwidth information.
-type Bandwidth map[string]int
+type Bandwidth struct {
+	Type  string
+	Value int
+}
 
 // TimeZone represents a time zones change information for a repeated session.
 type TimeZone struct {
@@ -87,19 +92,18 @@ type Repeat struct {
 
 // Media contains media description.
 type Media struct {
-	Type    string
-	Port    int
-	PortNum int
-	Proto   string
-
+	Type        string
+	Port        int
+	PortNum     int
+	Proto       string
 	Information string        // Media Information ("i=")
 	Connection  []*Connection // Connection Data ("c=")
-	Bandwidth   Bandwidth     // Bandwidth ("b=")
+	Bandwidth   []*Bandwidth  // Bandwidth ("b=")
 	Key         []*Key        // Encryption Keys ("k=")
 	Attributes                // Attributes ("a=")
-
-	Mode    string    // Streaming mode ("sendrecv", "recvonly", "sendonly", or "inactive")
-	Formats []*Format // Media Formats ("rtpmap")
+	Mode        string        // Streaming mode ("sendrecv", "recvonly", "sendonly", or "inactive")
+	Format      []*Format     // Media Format for RTP/AVP or RTP/SAVP protocols ("rtpmap", "fmtp", "rtcp-fb")
+	FormatDescr string        // Media Format for other protocols
 }
 
 // Streaming modes.
@@ -152,10 +156,10 @@ loop:
 	return attrs[:n]
 }
 
-// Format returns format description by payload type.
-func (m *Media) Format(pt int) *Format {
-	for _, f := range m.Formats {
-		if f.Payload == pt {
+// FormatByPayload returns format description by payload type.
+func (m *Media) FormatByPayload(payload uint8) *Format {
+	for _, f := range m.Format {
+		if f.Payload == payload {
 			return f
 		}
 	}
@@ -164,7 +168,7 @@ func (m *Media) Format(pt int) *Format {
 
 // Format is a media format description represented by "rtpmap" attributes.
 type Format struct {
-	Payload   int
+	Payload   uint8
 	Name      string
 	ClockRate int
 	Channels  int
@@ -177,3 +181,7 @@ func (f *Format) String() string {
 }
 
 var epoch = time.Date(1900, time.January, 1, 0, 0, 0, 0, time.UTC)
+
+func isRTP(proto string) bool {
+	return strings.Contains(proto, "RTP/AVP") || strings.Contains(proto, "RTP/SAVP")
+}
