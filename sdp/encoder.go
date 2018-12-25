@@ -84,8 +84,12 @@ func (w writer) sp() writer {
 	return append(w, ' ')
 }
 
+func (w writer) crlf() writer {
+	return append(w, '\r', '\n')
+}
+
 func (w writer) session(s *Session) writer {
-	w = w.char('v').int(int64(s.Version))
+	w = w.str("v=").int(int64(s.Version))
 	if s.Origin != nil {
 		w = w.add('o').origin(s.Origin)
 	}
@@ -127,7 +131,7 @@ func (w writer) session(s *Session) writer {
 	for _, it := range s.Media {
 		w = w.media(it)
 	}
-	return w
+	return w.crlf()
 }
 
 func (w writer) origin(o *Origin) writer {
