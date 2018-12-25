@@ -84,7 +84,7 @@ func (w writer) sp() writer {
 	return append(w, ' ')
 }
 
-func (w writer) rn() writer {
+func (w writer) crlf() writer {
 	return append(w, '\r', '\n')
 }
 
@@ -131,8 +131,7 @@ func (w writer) session(s *Session) writer {
 	for _, it := range s.Media {
 		w = w.media(it)
 	}
-	w = w.rn()
-	return w
+	return w.crlf()
 }
 
 func (w writer) origin(o *Origin) writer {
