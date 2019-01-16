@@ -160,7 +160,7 @@ func TestReadmeExample(t *testing.T) {
 				},
 			},
 		},
-		Mode: ModeSendRecv,
+		Mode: SendRecv,
 	}
 	expected, err := ParseString(readmeExample)
 	if err != nil {
@@ -211,7 +211,7 @@ func TestSeminarExample(t *testing.T) {
 			{Time: start, Offset: -time.Hour},
 			{Time: stop, Offset: 0},
 		},
-		Mode: ModeRecvOnly,
+		Mode: RecvOnly,
 		Media: []*Media{
 			{
 				Type:  "audio",

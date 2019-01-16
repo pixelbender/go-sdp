@@ -44,11 +44,3 @@ func (a *Attr) String() string {
 	}
 	return a.Name + ":" + a.Value
 }
-
-// Session or media attribute values for indication of a streaming mode.
-const (
-	ModeSendRecv = "sendrecv"
-	ModeRecvOnly = "recvonly"
-	ModeSendOnly = "sendonly"
-	ModeInactive = "inactive"
-)
