@@ -78,7 +78,7 @@ func main() {
     				},
     			},
     		},
-    		Mode: sdp.ModeSendRecv,
+    		Mode: sdp.SendRecv,
     	}
     	
 	fmt.Println(sess.String())
