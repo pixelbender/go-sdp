@@ -22,8 +22,8 @@ go get github.com/pixelbender/go-sdp/...
 package main
 
 import (
-	"github.com/pixelbender/go-sdp/sdp"
-	"fmt"
+    "github.com/pixelbender/go-sdp/sdp"
+    "fmt"
 )
 
 func main() {
@@ -51,8 +51,8 @@ a=rtpmap:8 PCMA/8000`)
 package main
 
 import (
-	"github.com/pixelbender/go-sdp/sdp"
-	"fmt"
+    "github.com/pixelbender/go-sdp/sdp"
+    "fmt"
 )
 
 func main() {

@@ -118,15 +118,15 @@ func (w writer) session(s *Session) writer {
 	for _, it := range s.Key {
 		w = w.add('k').key(it)
 	}
-	w = w.add('t').timing(s.Timing)
-	for _, it := range s.Repeat {
-		w = w.add('r').repeat(it)
-	}
 	if s.Mode != "" {
 		w = w.add('a').str(s.Mode)
 	}
 	for _, it := range s.Attributes {
 		w = w.add('a').attr(it)
+	}
+	w = w.add('t').timing(s.Timing)
+	for _, it := range s.Repeat {
+		w = w.add('r').repeat(it)
 	}
 	for _, it := range s.Media {
 		w = w.media(it)
@@ -146,9 +146,10 @@ func (w writer) media(m *Media) writer {
 	w = w.sp().str(m.Proto)
 	if f := m.FormatDescr; f != "" {
 		w = w.sp().str(f)
-	}
-	for _, it := range m.Format {
-		w = w.sp().int(int64(it.Payload))
+	} else {
+		for _, it := range m.Format {
+			w = w.sp().int(int64(it.Payload))
+		}
 	}
 	if m.Information != "" {
 		w = w.add('i').str(m.Information)
@@ -216,7 +217,7 @@ func (w writer) timing(t *Timing) writer {
 }
 
 func (w writer) repeat(r *Repeat) writer {
-	w.duration(r.Interval).sp().duration(r.Duration)
+	w = w.duration(r.Interval).sp().duration(r.Duration)
 	for _, it := range r.Offsets {
 		w = w.sp().duration(it)
 	}
@@ -269,7 +270,7 @@ func (w writer) connection(c *Connection) writer {
 }
 
 func (w writer) transport(network, typ, addr string) writer {
-	return w.fields(strdef(network, "IN"), strdef(typ, "IP4"), strdef(addr, "127.0.0.1"))
+	return w.fields(strdef(network, NetworkInternet), strdef(typ, TypeIPv4), strdef(addr, "127.0.0.1"))
 }
 
 func strdef(v, def string) string {

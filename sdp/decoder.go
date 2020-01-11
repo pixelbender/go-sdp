@@ -180,7 +180,8 @@ func (d *Decoder) format(m *Media, a *Attr) error {
 	}
 	f, v := m.FormatByPayload(uint8(pt)), p[1]
 	if f == nil {
-		return nil
+		f = &Format{Payload: uint8(pt)}
+		m.Format = append(m.Format, f)
 	}
 	switch a.Name {
 	case "rtpmap":
@@ -228,7 +229,7 @@ func (d *Decoder) proto(m *Media, v string) error {
 	if m.Port, err = strconv.Atoi(p[0]); err != nil {
 		return err
 	}
-	if !isRTP(m.Proto) {
+	if !isRTP(m.Type, m.Proto) {
 		m.FormatDescr = formats
 		return nil
 	}
@@ -268,20 +269,31 @@ func (d *Decoder) connection(v string) (*Connection, error) {
 	c := new(Connection)
 	c.Network, c.Type, c.Address = p[0], p[1], p[2]
 	p, ok = d.split(c.Address, '/', 3)
-	if ok {
-		ttl, err := d.int(p[1])
-		if err != nil {
-			return nil, err
+	switch c.Type {
+	case TypeIPv4:
+		if len(p) > 2 {
+			num, err := d.int(p[2])
+			if err != nil {
+				return nil, err
+			}
+			c.AddressNum = int(num)
 		}
-		c.TTL = int(ttl)
-		p = p[1:]
-	}
-	if len(p) > 1 {
-		num, err := d.int(p[1])
-		if err != nil {
-			return nil, err
+		if len(p) > 1 {
+			ttl, err := d.int(p[1])
+			if err != nil {
+				return nil, err
+			}
+			c.Address, c.TTL = p[0], int(ttl)
+			p = append(p[:1], p[2:]...)
 		}
-		c.Address, c.AddressNum = p[0], int(num)
+	case TypeIPv6:
+		if len(p) > 1 {
+			num, err := d.int(p[1])
+			if err != nil {
+				return nil, err
+			}
+			c.Address, c.AddressNum = p[0], int(num)
+		}
 	}
 	return c, nil
 }
@@ -345,6 +357,9 @@ func (d *Decoder) timing(v string) (*Timing, error) {
 	stop, err := d.time(p[1])
 	if err != nil {
 		return nil, err
+	}
+	if start.IsZero() && stop.IsZero() {
+		return nil, nil
 	}
 	return &Timing{start, stop}, nil
 }

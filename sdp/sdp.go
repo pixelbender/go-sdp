@@ -23,9 +23,9 @@ type Session struct {
 	Key         []*Key       // Encryption Keys ("k=")
 	Timing      *Timing      // Timing ("t=")
 	Repeat      []*Repeat    // Repeat Times ("r=")
-	Attributes               // Session Attributes ("a=")
-	Media       []*Media     // Media Descriptions ("m=")
+	Attributes  Attributes   // Session Attributes ("a=")
 	Mode        string       // Streaming mode ("sendrecv", "recvonly", "sendonly", or "inactive")
+	Media       []*Media     // Media Descriptions ("m=")
 }
 
 // String returns the encoded session description as string.
@@ -50,6 +50,15 @@ type Origin struct {
 	Address        string
 }
 
+const (
+	NetworkInternet = "IN"
+)
+
+const (
+	TypeIPv4 = "IP4"
+	TypeIPv6 = "IP6"
+)
+
 // Connection contains connection data.
 type Connection struct {
 	Network    string
@@ -72,7 +81,7 @@ type TimeZone struct {
 }
 
 // Key contains a key exchange information.
-// Deprecated: Not recommended, supported for compatibility with older implementations.
+// Deprecated. Use for backwards compatibility only.
 type Key struct {
 	Method, Value string
 }
@@ -182,6 +191,11 @@ func (f *Format) String() string {
 
 var epoch = time.Date(1900, time.January, 1, 0, 0, 0, 0, time.UTC)
 
-func isRTP(proto string) bool {
-	return strings.Contains(proto, "RTP/AVP") || strings.Contains(proto, "RTP/SAVP")
+func isRTP(media, proto string) bool {
+	switch media {
+	case "audio", "video":
+		return strings.Contains(proto, "RTP/AVP") || strings.Contains(proto, "RTP/SAVP")
+	default:
+		return false
+	}
 }
