@@ -118,15 +118,15 @@ func (w writer) session(s *Session) writer {
 	for _, it := range s.Key {
 		w = w.add('k').key(it)
 	}
+	w = w.add('t').timing(s.Timing)
+	for _, it := range s.Repeat {
+		w = w.add('r').repeat(it)
+	}
 	if s.Mode != "" {
 		w = w.add('a').str(s.Mode)
 	}
 	for _, it := range s.Attributes {
 		w = w.add('a').attr(it)
-	}
-	w = w.add('t').timing(s.Timing)
-	for _, it := range s.Repeat {
-		w = w.add('r').repeat(it)
 	}
 	for _, it := range s.Media {
 		w = w.media(it)
