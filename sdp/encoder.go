@@ -112,15 +112,15 @@ func (w writer) session(s *Session) writer {
 	for _, b := range s.Bandwidth {
 		w = w.add('b').bandwidth(b)
 	}
+	w = w.add('t').timing(s.Timing)
+	for _, it := range s.Repeat {
+		w = w.add('r').repeat(it)
+	}
 	if len(s.TimeZone) > 0 {
 		w = w.add('z').timezone(s.TimeZone)
 	}
 	for _, it := range s.Key {
 		w = w.add('k').key(it)
-	}
-	w = w.add('t').timing(s.Timing)
-	for _, it := range s.Repeat {
-		w = w.add('r').repeat(it)
 	}
 	if s.Mode != "" {
 		w = w.add('a').str(s.Mode)
