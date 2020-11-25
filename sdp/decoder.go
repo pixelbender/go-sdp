@@ -174,24 +174,39 @@ func (d *Decoder) format(m *Media, a *Attr) error {
 	if !ok {
 		return errFormat
 	}
-	pt, err := strconv.Atoi(p[0])
-	if err != nil {
-		return err
+	var (
+		pt     = p[0]
+		v      = p[1]
+		format []*Format
+	)
+	if pt == "*" {
+		format = m.Format
+	} else {
+		pt, err := strconv.Atoi(pt)
+		if err != nil {
+			return err
+		}
+		f := m.FormatByPayload(uint8(pt))
+		if f == nil {
+			f = &Format{Payload: uint8(pt)}
+			m.Format = append(m.Format, f)
+		}
+		format = append(format, f)
 	}
-	f, v := m.FormatByPayload(uint8(pt)), p[1]
-	if f == nil {
-		f = &Format{Payload: uint8(pt)}
-		m.Format = append(m.Format, f)
+	for _, f := range format {
+		switch a.Name {
+		case "rtpmap":
+			err := d.rtpmap(f, v)
+			if err != nil {
+				return err
+			}
+		case "rtcp-fb":
+			f.Feedback = append(f.Feedback, v)
+		case "fmtp":
+			f.Params = append(f.Params, v)
+		}
 	}
-	switch a.Name {
-	case "rtpmap":
-		err = d.rtpmap(f, v)
-	case "rtcp-fb":
-		f.Feedback = append(f.Feedback, v)
-	case "fmtp":
-		f.Params = append(f.Params, v)
-	}
-	return err
+	return nil
 }
 
 func (d *Decoder) rtpmap(f *Format, v string) error {
