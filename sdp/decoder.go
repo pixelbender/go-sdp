@@ -172,7 +172,7 @@ func (d *Decoder) media(m *Media, f byte, v string) error {
 func (d *Decoder) format(m *Media, a *Attr) error {
 	p, ok := d.fields(a.Value, 2)
 	if !ok {
-		return errFormat
+		return nil
 	}
 	var (
 		pt     = p[0]
@@ -283,7 +283,7 @@ func (d *Decoder) connection(v string) (*Connection, error) {
 	}
 	c := new(Connection)
 	c.Network, c.Type, c.Address = p[0], p[1], p[2]
-	p, ok = d.split(c.Address, '/', 3)
+	p, _ = d.split(c.Address, '/', 3)
 	switch c.Type {
 	case TypeIPv4:
 		if len(p) > 2 {
@@ -299,7 +299,6 @@ func (d *Decoder) connection(v string) (*Connection, error) {
 				return nil, err
 			}
 			c.Address, c.TTL = p[0], int(ttl)
-			p = append(p[:1], p[2:]...)
 		}
 	case TypeIPv6:
 		if len(p) > 1 {
