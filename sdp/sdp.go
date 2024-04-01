@@ -125,6 +125,13 @@ const (
 
 // NegotiateMode negotiates streaming mode.
 func NegotiateMode(local, remote string) string {
+	if local == "" {
+		local = SendRecv
+	}
+	if remote == "" {
+		remote = SendRecv
+	}
+
 	switch local {
 	case SendRecv:
 		switch remote {
