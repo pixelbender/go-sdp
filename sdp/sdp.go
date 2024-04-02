@@ -125,15 +125,8 @@ const (
 
 // NegotiateMode negotiates streaming mode.
 func NegotiateMode(local, remote string) string {
-	if local == "" {
-		local = SendRecv
-	}
-	if remote == "" {
-		remote = SendRecv
-	}
-
 	switch local {
-	case SendRecv:
+	case SendRecv, "":
 		switch remote {
 		case RecvOnly:
 			return SendOnly
@@ -144,12 +137,12 @@ func NegotiateMode(local, remote string) string {
 		}
 	case SendOnly:
 		switch remote {
-		case SendRecv, RecvOnly:
+		case SendRecv, "", RecvOnly:
 			return SendOnly
 		}
 	case RecvOnly:
 		switch remote {
-		case SendRecv, SendOnly:
+		case SendRecv, "", SendOnly:
 			return RecvOnly
 		}
 	}
@@ -214,10 +207,8 @@ func isRTP(media, proto string) bool {
 	}
 }
 
-// https://datatracker.ietf.org/doc/html/rfc3551#section-6
-const numKnownTypes = 35
-
-var payloadTypeNames [numKnownTypes]string = [numKnownTypes]string{
+// https://www.iana.org/assignments/rtp-parameters/rtp-parameters.xhtml
+var payloadTypeNames []string = []string{
 	0:  "PCMU",
 	3:  "GSM",
 	4:  "G723",
@@ -229,6 +220,8 @@ var payloadTypeNames [numKnownTypes]string = [numKnownTypes]string{
 	10: "L16",
 	11: "L16",
 	12: "QCELP",
+	13: "CN",
+	14: "MPA",
 	15: "G728",
 	16: "DVI4",
 	17: "DVI4",
@@ -243,7 +236,7 @@ var payloadTypeNames [numKnownTypes]string = [numKnownTypes]string{
 }
 
 func GetPayloadName(payload uint8) string {
-	if payload < numKnownTypes {
+	if int(payload) < len(payloadTypeNames) {
 		return payloadTypeNames[payload]
 	}
 	return ""
