@@ -82,7 +82,7 @@ a=fmtp:100 profile-level-id=42c01f;level-asymmetry-allowed=1
 					Port:  49170,
 					Proto: "RTP/AVP",
 					Format: []*Format{
-						{Payload: 0},
+						{Payload: 0, Name: "PCMU", ClockRate: 8000},
 					},
 				},
 				{
@@ -110,8 +110,6 @@ c=IN IP4 127.0.0.1
 t=0 0
 a=sendrecv
 m=audio 10000 RTP/AVP 0 8
-a=rtpmap:0 PCMU/8000
-a=rtpmap:8 PCMA/8000
 `,
 		Session: &Session{
 			Origin: &Origin{

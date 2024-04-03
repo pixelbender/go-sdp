@@ -188,7 +188,11 @@ func (d *Decoder) format(m *Media, a *Attr) error {
 		}
 		f := m.FormatByPayload(uint8(pt))
 		if f == nil {
-			f = &Format{Payload: uint8(pt)}
+			f = &Format{
+				Payload:   uint8(pt),
+				ClockRate: wellKnownClockRate(pt),
+				Name:      wellKnownName(pt),
+			}
 			m.Format = append(m.Format, f)
 		}
 		format = append(format, f)
@@ -254,7 +258,12 @@ func (d *Decoder) proto(m *Media, v string) error {
 		if err != nil {
 			return err
 		}
-		m.Format = append(m.Format, &Format{Payload: uint8(pt)})
+		m.Format = append(m.Format,
+			&Format{
+				Payload:   uint8(pt),
+				ClockRate: wellKnownClockRate(pt),
+				Name:      wellKnownName(pt),
+			})
 	}
 	return nil
 }
@@ -510,4 +519,73 @@ type errDecode struct {
 
 func (e *errDecode) Error() string {
 	return fmt.Sprintf("sdp: %s on line %d '%s'", e.err.Error(), e.line, e.text)
+}
+
+// https://www.iana.org/assignments/rtp-parameters/rtp-parameters.xhtml
+var wellKnownNames []string = []string{
+	0:  "PCMU",
+	3:  "GSM",
+	4:  "G723",
+	5:  "DVI4",
+	6:  "DVI4",
+	7:  "LPC",
+	8:  "PCMA",
+	9:  "G722",
+	10: "L16",
+	11: "L16",
+	12: "QCELP",
+	13: "CN",
+	14: "MPA",
+	15: "G728",
+	16: "DVI4",
+	17: "DVI4",
+	18: "G729",
+	25: "CelB",
+	26: "JPEG",
+	28: "nv",
+	31: "H261",
+	32: "MPV",
+	33: "MP2T",
+	34: "H263",
+}
+
+func wellKnownName(payload int) string {
+	if payload < len(wellKnownNames) {
+		return wellKnownNames[payload]
+	}
+	return ""
+}
+
+var wellKnownClockRates []int = []int{
+	0:  8000,
+	3:  8000,
+	4:  8000,
+	5:  8000,
+	6:  16000,
+	7:  8000,
+	8:  8000,
+	9:  8000,
+	10: 44100,
+	11: 44100,
+	12: 8000,
+	13: 8000,
+	14: 90000,
+	15: 8000,
+	16: 11025,
+	17: 22050,
+	18: 8000,
+	25: 90000,
+	26: 90000,
+	28: 90000,
+	31: 90000,
+	32: 90000,
+	33: 90000,
+	34: 90000,
+}
+
+func wellKnownClockRate(payload int) int {
+	if payload < len(wellKnownClockRates) {
+		return wellKnownClockRates[payload]
+	}
+	return 0
 }
