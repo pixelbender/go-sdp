@@ -190,8 +190,24 @@ func (w writer) format(f *Format) writer {
 	for _, it := range f.Feedback {
 		w = w.add('a').str("rtcp-fb:").int(p).sp().str(it)
 	}
-	for _, it := range f.Params {
-		w = w.add('a').str("fmtp:").int(p).sp().str(it)
+
+	if len(f.Params) > 0 {
+		w = w.add('a').str("fmtp:").int(p).sp()
+	}
+
+	skipFirstSemi := true
+	for k, v := range f.Params {
+		if skipFirstSemi {
+			skipFirstSemi = false
+		} else {
+			w = w.char(';')
+		}
+		if v == "" {
+			w = w.str(k)
+		} else {
+			w = w.str(k).char('=').str(v)
+		}
+
 	}
 	return w
 }

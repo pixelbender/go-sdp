@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 	"time"
 )
+
+const MaxParamsCount = 30
 
 // Parse reads session description from the buffer.
 func Parse(b []byte) (*Session, error) {
@@ -192,6 +195,7 @@ func (d *Decoder) format(m *Media, a *Attr) error {
 				Payload:   uint8(pt),
 				ClockRate: wellKnownClockRate(pt),
 				Name:      wellKnownName(pt),
+				Params:    make(map[string]string),
 			}
 			m.Format = append(m.Format, f)
 		}
@@ -207,7 +211,14 @@ func (d *Decoder) format(m *Media, a *Attr) error {
 		case "rtcp-fb":
 			f.Feedback = append(f.Feedback, v)
 		case "fmtp":
-			f.Params = append(f.Params, v)
+			for _, param := range strings.SplitN(v, ";", MaxParamsCount) {
+				kvs := strings.SplitN(param, "=", 2)
+				if len(kvs) < 2 {
+					f.Params[strings.TrimSpace(kvs[0])] = ""
+				} else {
+					f.Params[strings.TrimSpace(kvs[0])] = strings.TrimSpace(kvs[1])
+				}
+			}
 		}
 	}
 	return nil
@@ -263,6 +274,7 @@ func (d *Decoder) proto(m *Media, v string) error {
 				Payload:   uint8(pt),
 				ClockRate: wellKnownClockRate(pt),
 				Name:      wellKnownName(pt),
+				Params:    make(map[string]string),
 			})
 	}
 	return nil

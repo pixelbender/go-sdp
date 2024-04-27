@@ -82,7 +82,7 @@ a=fmtp:100 profile-level-id=42c01f;level-asymmetry-allowed=1
 					Port:  49170,
 					Proto: "RTP/AVP",
 					Format: []*Format{
-						{Payload: 0, Name: "PCMU", ClockRate: 8000},
+						{Payload: 0, Name: "PCMU", ClockRate: 8000, Params: make(map[string]string)},
 					},
 				},
 				{
@@ -90,9 +90,10 @@ a=fmtp:100 profile-level-id=42c01f;level-asymmetry-allowed=1
 					Port:  51372,
 					Proto: "RTP/AVP",
 					Format: []*Format{
-						{Payload: 99, Name: "h263-1998", ClockRate: 90000},
-						{Payload: 100, Name: "H264", ClockRate: 90000, Params: []string{
-							"profile-level-id=42c01f;level-asymmetry-allowed=1",
+						{Payload: 99, Name: "h263-1998", ClockRate: 90000, Params: make(map[string]string)},
+						{Payload: 100, Name: "H264", ClockRate: 90000, Params: map[string]string{
+							"profile-level-id":        "42c01f",
+							"level-asymmetry-allowed": "1",
 						}, Feedback: []string{
 							"ccm fir", "nack", "nack pli",
 						}},
@@ -132,8 +133,8 @@ m=audio 10000 RTP/AVP 0 8
 					Port:  10000,
 					Proto: "RTP/AVP",
 					Format: []*Format{
-						{Payload: 0, Name: "PCMU", ClockRate: 8000},
-						{Payload: 8, Name: "PCMA", ClockRate: 8000},
+						{Payload: 0, Name: "PCMU", ClockRate: 8000, Params: make(map[string]string)},
+						{Payload: 8, Name: "PCMA", ClockRate: 8000, Params: make(map[string]string)},
 					},
 				},
 			},

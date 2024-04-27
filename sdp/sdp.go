@@ -181,8 +181,8 @@ type Format struct {
 	Name      string
 	ClockRate int
 	Channels  int
-	Feedback  []string // "rtcp-fb" attributes
-	Params    []string // "fmtp" attributes
+	Feedback  []string          // "rtcp-fb" attributes
+	Params    map[string]string // "fmtp" attributes
 }
 
 func (f *Format) String() string {
