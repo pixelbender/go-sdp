@@ -102,6 +102,34 @@ a=fmtp:100 profile-level-id=42c01f;level-asymmetry-allowed=1
 		},
 	},
 	{
+		Name: "No PT example",
+		Data: `v=0
+o=alice 2890844526 2890844526 IN IP4 alice.example.org
+s=Example
+t=0 0
+m=audio 49170 RTP/AVP
+`,
+		Session: &Session{
+			Origin: &Origin{
+				Username:       "alice",
+				SessionID:      2890844526,
+				SessionVersion: 2890844526,
+				Network:        NetworkInternet,
+				Type:           TypeIPv4,
+				Address:        "alice.example.org",
+			},
+			Name: "Example",
+			Media: []*Media{
+				{
+					Type:   "audio",
+					Port:   49170,
+					Proto:  "RTP/AVP",
+					Format: []*Format{},
+				},
+			},
+		},
+	},
+	{
 		Name: "Readme Example",
 		Data: `v=0
 o=alice 2890844526 2890844526 IN IP4 alice.example.org

@@ -232,11 +232,17 @@ func (d *Decoder) rtpmap(f *Format, v string) error {
 }
 
 func (d *Decoder) proto(m *Media, v string) error {
+	var formats string
 	p, ok := d.fields(v, 4)
-	if !ok {
-		return errFormat
+	if ok {
+		formats = p[3]
+	} else {
+		p, ok = d.fields(v, 3)
+		if !ok {
+			return errFormat
+		}
 	}
-	formats := p[3]
+
 	m.Type, m.Proto = p[0], p[2]
 	p, ok = d.split(p[1], '/', 2)
 	var err error
@@ -252,6 +258,10 @@ func (d *Decoder) proto(m *Media, v string) error {
 		m.FormatDescr = formats
 		return nil
 	}
+	if len(formats) == 0 {
+		return nil
+	}
+
 	p, _ = d.fields(formats, maxLineSize)
 	for _, it := range p {
 		pt, err := strconv.Atoi(it)

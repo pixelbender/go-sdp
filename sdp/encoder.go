@@ -147,12 +147,8 @@ func (w writer) media(m *Media) writer {
 	if f := m.FormatDescr; f != "" {
 		w = w.sp().str(f)
 	} else {
-		if len(m.Format) > 0 {
-			for _, it := range m.Format {
-				w = w.sp().int(int64(it.Payload))
-			}
-		} else if m.PortNum == 0 {
-			w = w.sp().str("0")
+		for _, it := range m.Format {
+			w = w.sp().int(int64(it.Payload))
 		}
 	}
 	if m.Information != "" {
