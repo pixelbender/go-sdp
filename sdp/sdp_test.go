@@ -82,7 +82,7 @@ a=fmtp:100 profile-level-id=42c01f;level-asymmetry-allowed=1
 					Port:  49170,
 					Proto: "RTP/AVP",
 					Format: []*Format{
-						{Payload: 0, Name: "PCMU", ClockRate: 8000},
+						{Payload: 0, Name: "PCMU", ClockRate: 8000, Channels: 1},
 					},
 				},
 				{
@@ -90,8 +90,8 @@ a=fmtp:100 profile-level-id=42c01f;level-asymmetry-allowed=1
 					Port:  51372,
 					Proto: "RTP/AVP",
 					Format: []*Format{
-						{Payload: 99, Name: "h263-1998", ClockRate: 90000},
-						{Payload: 100, Name: "H264", ClockRate: 90000, Params: []string{
+						{Payload: 99, Name: "h263-1998", ClockRate: 90000, Channels: 1},
+						{Payload: 100, Name: "H264", ClockRate: 90000, Channels: 1, Params: []string{
 							"profile-level-id=42c01f;level-asymmetry-allowed=1",
 						}, Feedback: []string{
 							"ccm fir", "nack", "nack pli",
@@ -109,7 +109,9 @@ s=Example
 c=IN IP4 127.0.0.1
 t=0 0
 a=sendrecv
-m=audio 10000 RTP/AVP 0 8
+m=audio 10000 RTP/AVP 0 8 97 98
+a=rtpmap:97 telephone-event/8000
+a=rtpmap:98 telephone-event/16000
 `,
 		Session: &Session{
 			Origin: &Origin{
@@ -132,8 +134,10 @@ m=audio 10000 RTP/AVP 0 8
 					Port:  10000,
 					Proto: "RTP/AVP",
 					Format: []*Format{
-						{Payload: 0, Name: "PCMU", ClockRate: 8000},
-						{Payload: 8, Name: "PCMA", ClockRate: 8000},
+						{Payload: 0, Name: "PCMU", ClockRate: 8000, Channels: 1},
+						{Payload: 8, Name: "PCMA", ClockRate: 8000, Channels: 1},
+						{Payload: 97, Name: "telephone-event", ClockRate: 8000, Channels: 1},
+						{Payload: 98, Name: "telephone-event", ClockRate: 16000, Channels: 1},
 					},
 				},
 			},

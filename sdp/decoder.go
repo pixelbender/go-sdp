@@ -192,6 +192,7 @@ func (d *Decoder) format(m *Media, a *Attr) error {
 				Payload:   uint8(pt),
 				ClockRate: wellKnownClockRate(pt),
 				Name:      wellKnownName(pt),
+				Channels:  1,
 			}
 			m.Format = append(m.Format, f)
 		}
@@ -263,6 +264,7 @@ func (d *Decoder) proto(m *Media, v string) error {
 				Payload:   uint8(pt),
 				ClockRate: wellKnownClockRate(pt),
 				Name:      wellKnownName(pt),
+				Channels:  1,
 			})
 	}
 	return nil
