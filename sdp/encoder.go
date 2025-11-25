@@ -151,8 +151,6 @@ func (w writer) media(m *Media) writer {
 			for _, it := range m.Format {
 				w = w.sp().int(int64(it.Payload))
 			}
-		} else if m.PortNum == 0 {
-			w = w.sp().str("0")
 		}
 	}
 	if m.Information != "" {

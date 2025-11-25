@@ -193,6 +193,126 @@ a=sctp-port:5000
 			},
 		},
 	},
+	{Name: "CustomFMT_Example",
+		Data: `v=0
+o=- 346233524 2740610963 IN IP4 127.0.0.1
+s=centrex-mediagateway
+t=0 0
+m=audio 29292 RTP/AVP 8 101
+c=IN IP4 127.0.0.1
+a=rtpmap:101 telephone-event/8000
+a=sendrecv
+a=ptime:20
+m=video 11824/2 RTP/AVP 125
+c=IN IP4 127.0.0.2
+a=rtpmap:125 H264/90000
+a=fmtp:125 profile-level-id=640028
+a=sendrecv
+m=application 0 RTP/AVP
+a=inactive
+m=application 0 UDP/BFCP *
+a=inactive
+m=video 0 RTP/AVP
+a=inactive
+m=application 0 RTP/SAVP *
+m=video 0 RTP/SAVP *
+m=application 0 TCP/BFCP *
+m=audio 0 RTP/AVP 0
+`,
+		Session: &Session{
+			Origin: &Origin{
+				Username:       "-",
+				SessionID:      346233524,
+				SessionVersion: 2740610963,
+				Network:        NetworkInternet,
+				Type:           TypeIPv4,
+				Address:        "127.0.0.1",
+			},
+			Name: "centrex-mediagateway",
+			Media: []*Media{
+				{
+					Type:  "audio",
+					Port:  29292,
+					Proto: "RTP/AVP",
+					Connection: []*Connection{{
+						Network: NetworkInternet,
+						Type:    TypeIPv4,
+						Address: "127.0.0.1",
+					}},
+					Attributes: Attributes{
+						{Name: "ptime", Value: "20"},
+					},
+					Mode: SendRecv,
+					Format: []*Format{
+						{Payload: 8, Name: "PCMA", ClockRate: 8000, Channels: 1},
+						{Payload: 101, Name: "telephone-event", ClockRate: 8000, Channels: 1},
+					},
+				},
+				{
+					Type:    "video",
+					Port:    11824,
+					PortNum: 2,
+					Proto:   "RTP/AVP",
+					Connection: []*Connection{{
+						Network: NetworkInternet,
+						Type:    TypeIPv4,
+						Address: "127.0.0.2",
+					}},
+					Mode: SendRecv,
+					Format: []*Format{
+						{Payload: 125, Name: "H264", ClockRate: 90000, Channels: 1, Params: []string{
+							"profile-level-id=640028",
+						}},
+					},
+				},
+				{
+					Type:  "application",
+					Port:  0,
+					Proto: "RTP/AVP",
+					Mode:  Inactive,
+				},
+				{
+					Type:        "application",
+					Port:        0,
+					Proto:       "UDP/BFCP",
+					FormatDescr: "*",
+					Mode:        Inactive,
+				},
+				{
+					Type:  "video",
+					Port:  0,
+					Proto: "RTP/AVP",
+					Mode:  Inactive,
+				},
+				{
+					Type:        "application",
+					Port:        0,
+					Proto:       "RTP/SAVP",
+					FormatDescr: "*",
+				},
+				{
+					Type:        "video",
+					Port:        0,
+					Proto:       "RTP/SAVP",
+					FormatDescr: "*",
+				},
+				{
+					Type:        "application",
+					Port:        0,
+					Proto:       "TCP/BFCP",
+					FormatDescr: "*",
+				},
+				{
+					Type:  "audio",
+					Port:  0,
+					Proto: "RTP/AVP",
+					Format: []*Format{
+						{Payload: 0, Name: "PCMU", ClockRate: 8000, Channels: 1},
+					},
+				},
+			},
+		},
+	},
 }
 
 type testVector struct {

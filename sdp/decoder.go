@@ -234,10 +234,15 @@ func (d *Decoder) rtpmap(f *Format, v string) error {
 
 func (d *Decoder) proto(m *Media, v string) error {
 	p, ok := d.fields(v, 4)
+	formats := ""
 	if !ok {
-		return errFormat
+		if p, ok = d.fields(v, 3); !ok {
+			return errFormat
+		}
+	} else {
+		formats = p[3]
 	}
-	formats := p[3]
+
 	m.Type, m.Proto = p[0], p[2]
 	p, ok = d.split(p[1], '/', 2)
 	var err error
@@ -249,7 +254,7 @@ func (d *Decoder) proto(m *Media, v string) error {
 	if m.Port, err = strconv.Atoi(p[0]); err != nil {
 		return err
 	}
-	if !isRTP(m.Type, m.Proto) {
+	if !isRTP(m.Type, m.Proto) || formats == "*" || formats == "" {
 		m.FormatDescr = formats
 		return nil
 	}
